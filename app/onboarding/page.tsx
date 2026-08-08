@@ -60,7 +60,7 @@ interface DocumentCardProps {
   description: string;
   isUploaded: boolean;
   fileName?: string;
-  inputRef: React.RefObject<HTMLInputElement>;
+  inputRef: React.RefObject<HTMLInputElement | null>;
   onUpload: (file: File | null) => void;
 }
 
@@ -120,7 +120,7 @@ interface PhotoCardProps {
   label: string;
   description: string;
   preview: string | null;
-  inputRef: React.RefObject<HTMLInputElement>;
+  inputRef: React.RefObject<HTMLInputElement | null>;
   onUpload: (file: File | null) => void;
 }
 
