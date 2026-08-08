@@ -1,35 +1,31 @@
 import { NextRequest, NextResponse } from 'next/server';
-import fs from 'fs';
-import path from 'path';
+import dbConnect from '@/lib/mongodb';
+import DriverApplication from '@/models/DriverApplication';
 
 export async function POST(request: NextRequest) {
   try {
+    await dbConnect();
     const body = await request.json();
     const { fullName, email, phoneNumber, state, vehicleType, files, photos } = body;
 
-    const application = {
-      _id: Date.now().toString(),
-      fullName,
-      email,
-      phoneNumber,
-      state,
-      vehicleType,
-      files,
-      photos,
+    const application = await DriverApplication.create({
+      fullName, email, phoneNumber, state, vehicleType,
+      files: {
+        ssn: { fileName: files?.ssn?.name || 'unknown', fileSize: files?.ssn?.size || 0, uploadedAt: new Date() },
+        license: { fileName: files?.license?.name || 'unknown', fileSize: files?.license?.size || 0, uploadedAt: new Date() },
+        registration: { fileName: files?.registration?.name || 'unknown', fileSize: files?.registration?.size || 0, uploadedAt: new Date() },
+        insurance: { fileName: files?.insurance?.name || 'unknown', fileSize: files?.insurance?.size || 0, uploadedAt: new Date() },
+        check: { fileName: files?.check?.name || 'unknown', fileSize: files?.check?.size || 0, uploadedAt: new Date() }
+      },
+      photos: {
+        front: { fileName: photos?.front?.name || 'unknown', fileSize: photos?.front?.size || 0, uploadedAt: new Date() },
+        driverSide: { fileName: photos?.driverSide?.name || 'unknown', fileSize: photos?.driverSide?.size || 0, uploadedAt: new Date() },
+        passengerSide: { fileName: photos?.passengerSide?.name || 'unknown', fileSize: photos?.passengerSide?.size || 0, uploadedAt: new Date() },
+        rear: { fileName: photos?.rear?.name || 'unknown', fileSize: photos?.rear?.size || 0, uploadedAt: new Date() }
+      },
       status: 'pending',
-      submittedAt: new Date().toISOString()
-    };
-
-    const dataPath = path.join(process.cwd(), 'data.json');
-    let applications = [];
-    
-    if (fs.existsSync(dataPath)) {
-      const raw = fs.readFileSync(dataPath, 'utf-8');
-      applications = JSON.parse(raw);
-    }
-    
-    applications.push(application);
-    fs.writeFileSync(dataPath, JSON.stringify(applications, null, 2));
+      submittedAt: new Date()
+    });
 
     return NextResponse.json({ success: true, applicationId: application._id }, { status: 201 });
   } catch (error: any) {
