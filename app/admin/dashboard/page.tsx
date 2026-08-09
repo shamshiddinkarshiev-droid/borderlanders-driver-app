@@ -29,7 +29,7 @@ export default function AdminDashboard() {
 
   const fetchApplications = async () => {
     try {
-      const response = await fetch('/api/applications');
+      const response = await fetch('/api/applications', { cache: 'no-store' });
       const data = await response.json();
       if (data.success) setApplications(data.applications);
     } catch (error) {
