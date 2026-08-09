@@ -9,6 +9,6 @@ export async function GET() {
     return NextResponse.json({ success: true, applications });
   } catch (error: any) {
     console.error('GET error:', error.message);
-    return NextResponse.json({ success: false, applications: [] }, { status: 500 });
+    return NextResponse.json({ success: false, applications: [], message: error.message }, { status: 500 });
   }
 }
