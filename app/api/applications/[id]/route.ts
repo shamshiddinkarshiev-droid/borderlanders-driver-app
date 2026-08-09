@@ -2,37 +2,29 @@ import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongodb';
 import DriverApplication from '@/models/DriverApplication';
 
-type RouteContext = { params: Promise<{ id: string }> };
-
-export async function PATCH(request: Request, context: RouteContext) {
+export async function PATCH(request: Request, context: any) {
   try {
     await dbConnect();
-    const { id } = await context.params;
     const { status } = await request.json();
-    const application = await DriverApplication.findByIdAndUpdate(id, { status }, { new: true });
-
-    if (!application) {
-      return NextResponse.json({ success: false, message: 'Application not found' }, { status: 404 });
-    }
-
+    const application = await DriverApplication.findByIdAndUpdate(
+      context.params.id,
+      { status },
+      { new: true }
+    );
     return NextResponse.json({ success: true, application });
   } catch (error: any) {
+    console.error('PATCH error:', error.message);
     return NextResponse.json({ success: false, message: error.message }, { status: 500 });
   }
 }
 
-export async function DELETE(_request: Request, context: RouteContext) {
+export async function DELETE(request: Request, context: any) {
   try {
     await dbConnect();
-    const { id } = await context.params;
-    const application = await DriverApplication.findByIdAndDelete(id);
-
-    if (!application) {
-      return NextResponse.json({ success: false, message: 'Application not found' }, { status: 404 });
-    }
-
+    await DriverApplication.findByIdAndDelete(context.params.id);
     return NextResponse.json({ success: true });
   } catch (error: any) {
+    console.error('DELETE error:', error.message);
     return NextResponse.json({ success: false, message: error.message }, { status: 500 });
   }
 }
