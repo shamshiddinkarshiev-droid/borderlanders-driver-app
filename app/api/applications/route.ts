@@ -5,10 +5,25 @@ import DriverApplication from '@/models/DriverApplication';
 export async function GET() {
   try {
     await dbConnect();
-    const applications = await DriverApplication.find().sort({ submittedAt: -1 }).lean();
-    return NextResponse.json({ success: true, applications });
+
+    const applications = await DriverApplication.find()
+      .sort({ submittedAt: -1 })
+      .lean();
+
+    return NextResponse.json({
+      success: true,
+      applications,
+    });
   } catch (error: any) {
     console.error('GET error:', error.message);
-    return NextResponse.json({ success: false, applications: [], message: error.message }, { status: 500 });
+
+    return NextResponse.json(
+      {
+        success: false,
+        applications: [],
+        message: error.message,
+      },
+      { status: 500 }
+    );
   }
 }

@@ -1,30 +1,54 @@
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongodb';
 import DriverApplication from '@/models/DriverApplication';
+import { Types } from 'mongoose';
 
-export async function PATCH(request: Request, context: any) {
+export async function DELETE(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
   try {
     await dbConnect();
-    const { status } = await request.json();
-    const application = await DriverApplication.findByIdAndUpdate(
-      context.params.id,
-      { status },
-      { new: true }
+
+    const { id } = await params;
+
+    if (!Types.ObjectId.isValid(id)) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: 'Invalid application ID',
+        },
+        { status: 400 }
+      );
+    }
+
+    const deleted = await DriverApplication.findByIdAndDelete(id);
+
+    if (!deleted) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: 'Application not found',
+        },
+        { status: 404 }
+      );
+    }
+
+    console.log('Application deleted:', id);
+
+    return NextResponse.json({
+      success: true,
+      message: 'Application deleted successfully',
+    });
+  } catch (error: any) {
+    console.error('DELETE error:', error);
+
+    return NextResponse.json(
+      {
+        success: false,
+        message: error?.message || 'Failed to delete application',
+      },
+      { status: 500 }
     );
-    return NextResponse.json({ success: true, application });
-  } catch (error: any) {
-    console.error('PATCH error:', error.message);
-    return NextResponse.json({ success: false, message: error.message }, { status: 500 });
-  }
-}
-
-export async function DELETE(request: Request, context: any) {
-  try {
-    await dbConnect();
-    await DriverApplication.findByIdAndDelete(context.params.id);
-    return NextResponse.json({ success: true });
-  } catch (error: any) {
-    console.error('DELETE error:', error.message);
-    return NextResponse.json({ success: false, message: error.message }, { status: 500 });
   }
 }
