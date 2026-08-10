@@ -5,49 +5,33 @@ import { Types } from 'mongoose';
 
 export async function DELETE(
   request: Request,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
     await dbConnect();
 
-    const { id } = await params;
-
-    if (!Types.ObjectId.isValid(id)) {
+    if (!Types.ObjectId.isValid(params.id)) {
       return NextResponse.json(
-        {
-          success: false,
-          message: 'Invalid application ID',
-        },
+        { success: false, message: 'Invalid ID' },
         { status: 400 }
       );
     }
 
-    const deleted = await DriverApplication.findByIdAndDelete(id);
+    const deleted = await DriverApplication.findByIdAndDelete(params.id);
 
     if (!deleted) {
       return NextResponse.json(
-        {
-          success: false,
-          message: 'Application not found',
-        },
+        { success: false, message: 'Not found' },
         { status: 404 }
       );
     }
 
-    console.log('Application deleted:', id);
-
-    return NextResponse.json({
-      success: true,
-      message: 'Application deleted successfully',
-    });
+    return NextResponse.json({ success: true });
   } catch (error: any) {
-    console.error('DELETE error:', error);
+    console.error('DELETE error:', error.message);
 
     return NextResponse.json(
-      {
-        success: false,
-        message: error?.message || 'Failed to delete application',
-      },
+      { success: false, message: error.message },
       { status: 500 }
     );
   }
