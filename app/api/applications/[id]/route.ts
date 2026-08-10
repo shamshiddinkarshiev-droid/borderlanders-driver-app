@@ -5,18 +5,19 @@ import { Types } from 'mongoose';
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await dbConnect();
+    const { id } = await params;
     const { status } = await request.json();
     
-    if (!Types.ObjectId.isValid(params.id)) {
+    if (!Types.ObjectId.isValid(id)) {
       return NextResponse.json({ success: false, message: 'Invalid ID' }, { status: 400 });
     }
 
     const application = await DriverApplication.findByIdAndUpdate(
-      params.id,
+      id,
       { status },
       { new: true }
     );
@@ -34,16 +35,17 @@ export async function PATCH(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await dbConnect();
+    const { id } = await params;
     
-    if (!Types.ObjectId.isValid(params.id)) {
+    if (!Types.ObjectId.isValid(id)) {
       return NextResponse.json({ success: false, message: 'Invalid ID' }, { status: 400 });
     }
 
-    const deleted = await DriverApplication.findByIdAndDelete(params.id);
+    const deleted = await DriverApplication.findByIdAndDelete(id);
 
     if (!deleted) {
       return NextResponse.json({ success: false, message: 'Not found' }, { status: 404 });
