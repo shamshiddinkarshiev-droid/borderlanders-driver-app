@@ -102,6 +102,7 @@ export default function ApplicationDetail() {
   const [isLoading, setIsLoading] = useState(true);
   const [modal, setModal] = useState<'hire' | 'delete' | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
   useEffect(() => {
     const isLoggedIn = localStorage.getItem('adminLoggedIn');
@@ -122,8 +123,12 @@ export default function ApplicationDetail() {
 
       const data = await response.json();
 
+      const id = Array.isArray(params.id)
+        ? params.id[0]
+        : params.id;
+
       const app = data.applications.find(
-        (a: any) => a._id === params.id
+        (a: any) => a._id === id
       );
 
       setApplication(app);
@@ -138,7 +143,11 @@ export default function ApplicationDetail() {
     setIsProcessing(true);
 
     try {
-      const response = await fetch(`/api/applications/${params.id}`, {
+      const id = Array.isArray(params.id)
+        ? params.id[0]
+        : params.id;
+
+      const response = await fetch(`/api/applications/${id}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -168,12 +177,13 @@ export default function ApplicationDetail() {
     setIsProcessing(true);
 
     try {
-      const response = await fetch(
-        `/api/applications/${params.id}`,
-        {
-          method: 'DELETE',
-        }
-      );
+      const id = Array.isArray(params.id)
+        ? params.id[0]
+        : params.id;
+
+      const response = await fetch(`/api/applications/${id}`, {
+        method: 'DELETE',
+      });
 
       const data = await response.json();
 
@@ -195,6 +205,23 @@ export default function ApplicationDetail() {
     if (type === 'cargo-van') return '🚐';
     if (type === 'sprinter-van') return '🚌';
     return '🚛';
+  };
+
+  /*
+   * Some upload systems return `fileUrl`, while others may return
+   * `url` or `ufsUrl`.
+   *
+   * We check all of them.
+   */
+  const getFileUrl = (file: any) => {
+    if (!file) return null;
+
+    return (
+      file.fileUrl ||
+      file.url ||
+      file.ufsUrl ||
+      null
+    );
   };
 
   const photos = [
@@ -234,6 +261,29 @@ export default function ApplicationDetail() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
+
+      {/* IMAGE VIEWER */}
+      {selectedImage && (
+        <div
+          className="fixed inset-0 z-[100] bg-black/90 flex items-center justify-center p-6"
+          onClick={() => setSelectedImage(null)}
+        >
+          <button
+            onClick={() => setSelectedImage(null)}
+            className="absolute top-6 right-6 w-10 h-10 rounded-full bg-white/10 text-white text-xl hover:bg-white/20"
+          >
+            ✕
+          </button>
+
+          <img
+            src={selectedImage}
+            alt="Vehicle"
+            className="max-w-full max-h-[90vh] object-contain rounded-xl"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
+
       {modal && (
         <Modal
           type={modal}
@@ -275,6 +325,7 @@ export default function ApplicationDetail() {
         {/* DRIVER INFO */}
         <div className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-2xl p-6">
           <div className="flex items-center gap-4 mb-6">
+
             <div className="w-16 h-16 bg-gradient-to-r from-cyan-500/20 to-blue-500/20 border border-cyan-500/30 rounded-2xl flex items-center justify-center text-3xl">
               {getVehicleIcon(application.vehicleType)}
             </div>
@@ -288,167 +339,222 @@ export default function ApplicationDetail() {
                 {application.vehicleType}
               </p>
             </div>
+
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+
             <div className="bg-slate-800/30 rounded-xl p-4">
-              <p className="text-gray-400 text-xs mb-1">Email</p>
+              <p className="text-gray-400 text-xs mb-1">
+                Email
+              </p>
+
               <p className="text-white font-medium">
                 {application.email}
               </p>
             </div>
 
             <div className="bg-slate-800/30 rounded-xl p-4">
-              <p className="text-gray-400 text-xs mb-1">Phone</p>
+              <p className="text-gray-400 text-xs mb-1">
+                Phone
+              </p>
+
               <p className="text-white font-medium">
                 {application.phoneNumber}
               </p>
             </div>
 
             <div className="bg-slate-800/30 rounded-xl p-4">
-              <p className="text-gray-400 text-xs mb-1">State</p>
+              <p className="text-gray-400 text-xs mb-1">
+                State
+              </p>
+
               <p className="text-white font-medium">
                 {application.state}
               </p>
             </div>
 
             <div className="bg-slate-800/30 rounded-xl p-4">
-              <p className="text-gray-400 text-xs mb-1">Applied</p>
+              <p className="text-gray-400 text-xs mb-1">
+                Applied
+              </p>
+
               <p className="text-white font-medium">
                 {new Date(
                   application.submittedAt
                 ).toLocaleDateString()}
               </p>
             </div>
+
           </div>
         </div>
 
         {/* VEHICLE PHOTOS */}
         <div className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-2xl p-6">
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <h2 className="text-xl font-bold text-white">
-                Vehicle Photos
-              </h2>
 
-              <p className="text-gray-400 text-sm mt-1">
-                Photos submitted by the applicant
-              </p>
-            </div>
+          <div className="mb-6">
+            <h2 className="text-xl font-bold text-white">
+              Vehicle Photos
+            </h2>
+
+            <p className="text-gray-400 text-sm mt-1">
+              Photos submitted by the applicant
+            </p>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-            {photos.map((item) => (
-              <div
-                key={item.name}
-                className="bg-slate-800/40 border border-white/10 rounded-2xl overflow-hidden"
-              >
-                <div className="aspect-video bg-slate-950 flex items-center justify-center">
-                  {item.photo?.fileUrl ? (
-                    <img
-                      src={item.photo.fileUrl}
-                      alt={`${item.name} vehicle photo`}
-                      className="w-full h-full object-contain"
-                    />
-                  ) : (
-                    <div className="text-center">
-                      <p className="text-3xl mb-2">📷</p>
-                      <p className="text-gray-500 text-sm">
-                        No photo uploaded
-                      </p>
-                    </div>
-                  )}
-                </div>
 
-                <div className="p-4 flex items-center justify-between gap-3">
-                  <div>
-                    <p className="text-white font-semibold">
-                      {item.name}
-                    </p>
+            {photos.map((item) => {
+              const imageUrl = getFileUrl(item.photo);
 
-                    {item.photo?.fileName && (
-                      <p className="text-gray-500 text-xs mt-1 truncate max-w-[180px]">
-                        {item.photo.fileName}
-                      </p>
+              return (
+                <div
+                  key={item.name}
+                  className="bg-slate-800/40 border border-white/10 rounded-2xl overflow-hidden"
+                >
+
+                  {/* IMAGE */}
+                  <div className="aspect-video bg-slate-950 flex items-center justify-center">
+
+                    {imageUrl ? (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setSelectedImage(imageUrl)
+                        }
+                        className="w-full h-full cursor-zoom-in"
+                      >
+                        <img
+                          src={imageUrl}
+                          alt={`${item.name} vehicle photo`}
+                          className="w-full h-full object-contain hover:scale-[1.02] transition-transform"
+                        />
+                      </button>
+                    ) : (
+                      <div className="text-center">
+                        <p className="text-3xl mb-2">
+                          📷
+                        </p>
+
+                        <p className="text-gray-500 text-sm">
+                          No photo uploaded
+                        </p>
+                      </div>
                     )}
+
                   </div>
 
-                  {item.photo?.fileUrl && (
-                    <a
-                      href={item.photo.fileUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="px-4 py-2 bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 rounded-lg text-sm font-semibold hover:bg-cyan-500/20 transition-all"
-                    >
-                      Open ↗
-                    </a>
-                  )}
+                  {/* PHOTO INFO */}
+                  <div className="p-4 flex items-center justify-between gap-3">
+
+                    <div className="min-w-0">
+                      <p className="text-white font-semibold">
+                        {item.name}
+                      </p>
+
+                      {item.photo?.fileName && (
+                        <p className="text-gray-500 text-xs mt-1 truncate">
+                          {item.photo.fileName}
+                        </p>
+                      )}
+                    </div>
+
+                    {imageUrl && (
+                      <a
+                        href={imageUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="shrink-0 px-4 py-2 bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 rounded-lg text-sm font-semibold hover:bg-cyan-500/20 transition-all"
+                      >
+                        Open ↗
+                      </a>
+                    )}
+
+                  </div>
+
                 </div>
-              </div>
-            ))}
+              );
+            })}
+
           </div>
         </div>
 
         {/* DOCUMENTS */}
         <div className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-2xl p-6">
+
           <h2 className="text-xl font-bold text-white mb-4">
             Documents
           </h2>
 
           <div className="space-y-3">
+
             {application.files &&
               Object.entries(application.files).map(
-                ([key, file]: any) => (
-                  <div
-                    key={key}
-                    className="flex items-center justify-between p-4 bg-slate-800/30 rounded-xl"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 bg-emerald-500/10 rounded-lg flex items-center justify-center">
-                        <svg
-                          className="w-4 h-4 text-emerald-400"
-                          fill="currentColor"
-                          viewBox="0 0 20 20"
-                        >
-                          <path
-                            fillRule="evenodd"
-                            d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                            clipRule="evenodd"
-                          />
-                        </svg>
+                ([key, file]: any) => {
+
+                  const fileUrl = getFileUrl(file);
+
+                  return (
+                    <div
+                      key={key}
+                      className="flex items-center justify-between p-4 bg-slate-800/30 rounded-xl"
+                    >
+
+                      <div className="flex items-center gap-3">
+
+                        <div className="w-8 h-8 bg-emerald-500/10 rounded-lg flex items-center justify-center">
+
+                          <svg
+                            className="w-4 h-4 text-emerald-400"
+                            fill="currentColor"
+                            viewBox="0 0 20 20"
+                          >
+                            <path
+                              fillRule="evenodd"
+                              d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                              clipRule="evenodd"
+                            />
+                          </svg>
+
+                        </div>
+
+                        <span className="text-white font-medium capitalize">
+                          {key === 'ssn'
+                            ? 'SSN / EIN'
+                            : key}
+                        </span>
+
                       </div>
 
-                      <span className="text-white font-medium capitalize">
-                        {key === 'ssn'
-                          ? 'SSN / EIN'
-                          : key}
-                      </span>
-                    </div>
+                      <div className="flex items-center gap-3">
 
-                    <div className="flex items-center gap-3">
-                      <span className="text-emerald-400 text-sm">
-                        ✓ Uploaded
-                      </span>
+                        <span className="text-emerald-400 text-sm">
+                          ✓ Uploaded
+                        </span>
 
-                      {file?.fileUrl && (
-                        <a
-                          href={file.fileUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="px-3 py-1.5 bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 rounded-lg text-xs font-semibold hover:bg-cyan-500/20 transition-all"
-                        >
-                          Open ↗
-                        </a>
-                      )}
+                        {fileUrl && (
+                          <a
+                            href={fileUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="px-3 py-1.5 bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 rounded-lg text-xs font-semibold hover:bg-cyan-500/20 transition-all"
+                          >
+                            Open ↗
+                          </a>
+                        )}
+
+                      </div>
                     </div>
-                  </div>
-                )
+                  );
+                }
               )}
+
           </div>
         </div>
 
         {/* ACTIONS */}
         <div className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-2xl p-6 space-y-3">
+
           <h2 className="text-xl font-bold text-white mb-4">
             Actions
           </h2>
@@ -470,7 +576,9 @@ export default function ApplicationDetail() {
           >
             🗑️ Delete Application
           </button>
+
         </div>
+
       </div>
     </div>
   );
