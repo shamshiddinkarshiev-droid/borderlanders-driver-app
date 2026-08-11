@@ -2,6 +2,7 @@
 
 import React, { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import { useUploadThing } from '@/lib/uploadthing';
 
 type VehicleType = 'cargo-van' | 'sprinter-van' | 'box-truck' | null;
 type FileType = 'license' | 'registration' | 'insurance' | 'check' | 'ssn';
@@ -64,29 +65,13 @@ interface DocumentCardProps {
   onUpload: (file: File | null) => void;
 }
 
-function DocumentCard({
-  type,
-  label,
-  description,
-  isUploaded,
-  fileName,
-  inputRef,
-  onUpload,
-}: DocumentCardProps) {
+function DocumentCard({ type, label, description, isUploaded, fileName, inputRef, onUpload }: DocumentCardProps) {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0] || null;
     onUpload(file);
   };
-
   return (
-    <button
-      onClick={() => inputRef.current?.click()}
-      className={`w-full text-left transition-all p-4 rounded-lg border-2 ${
-        isUploaded
-          ? 'bg-emerald-500/10 border-emerald-500/30'
-          : 'bg-slate-800/30 border-slate-700/50 hover:border-slate-600/50'
-      }`}
-    >
+    <button onClick={() => inputRef.current?.click()} className={`w-full text-left transition-all p-4 rounded-lg border-2 ${isUploaded ? 'bg-emerald-500/10 border-emerald-500/30' : 'bg-slate-800/30 border-slate-700/50 hover:border-slate-600/50'}`}>
       <div className="flex items-center justify-between">
         <div className="flex-1">
           <p className={`font-semibold ${isUploaded ? 'text-emerald-400' : 'text-white'}`}>{label}</p>
@@ -95,22 +80,13 @@ function DocumentCard({
         </div>
         <div className="ml-4 flex-shrink-0">
           {isUploaded ? (
-            <svg className="w-6 h-6 text-emerald-400" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-            </svg>
+            <svg className="w-6 h-6 text-emerald-400" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg>
           ) : (
-            <svg className="w-6 h-6 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
+            <svg className="w-6 h-6 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
           )}
         </div>
       </div>
-      <input
-        ref={inputRef}
-        type="file"
-        onChange={handleChange}
-        className="hidden"
-      />
+      <input ref={inputRef} type="file" onChange={handleChange} className="hidden" />
     </button>
   );
 }
@@ -124,54 +100,29 @@ interface PhotoCardProps {
   onUpload: (file: File | null) => void;
 }
 
-function PhotoCard({
-  position,
-  label,
-  description,
-  preview,
-  inputRef,
-  onUpload,
-}: PhotoCardProps) {
+function PhotoCard({ position, label, description, preview, inputRef, onUpload }: PhotoCardProps) {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0] || null;
     onUpload(file);
   };
-
   return (
-    <button
-      onClick={() => inputRef.current?.click()}
-      className={`relative overflow-hidden rounded-xl border-2 transition-all aspect-square ${
-        preview
-          ? 'border-emerald-500/30'
-          : 'border-slate-700/50 bg-slate-800/30 hover:border-slate-600/50'
-      }`}
-    >
+    <button onClick={() => inputRef.current?.click()} className={`relative overflow-hidden rounded-xl border-2 transition-all aspect-square ${preview ? 'border-emerald-500/30' : 'border-slate-700/50 bg-slate-800/30 hover:border-slate-600/50'}`}>
       {preview ? (
         <>
           <img src={preview} alt={label} className="w-full h-full object-cover" />
           <div className="absolute inset-0 bg-emerald-500/20 flex flex-col items-center justify-center">
-            <svg className="w-8 h-8 text-emerald-400 mb-2" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-            </svg>
+            <svg className="w-8 h-8 text-emerald-400 mb-2" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg>
             <p className="text-xs text-white font-semibold bg-black/40 px-2 py-1 rounded">{label}</p>
           </div>
         </>
       ) : (
         <div className="flex flex-col items-center justify-center h-full">
-          <svg className="w-8 h-8 text-gray-500 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-          </svg>
+          <svg className="w-8 h-8 text-gray-500 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
           <p className="text-sm font-semibold text-gray-400">{label}</p>
           <p className="text-xs text-gray-500 mt-1">{description}</p>
         </div>
       )}
-      <input
-        ref={inputRef}
-        type="file"
-        accept="image/*"
-        onChange={handleChange}
-        className="hidden"
-      />
+      <input ref={inputRef} type="file" accept="image/*" onChange={handleChange} className="hidden" />
     </button>
   );
 }
@@ -180,32 +131,16 @@ export default function OnboardingPage() {
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState<1 | 2 | 3 | 4>(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState('');
   const [formData, setFormData] = useState<FormData>({
-    fullName: '',
-    email: '',
-    phoneNumber: '',
-    state: '',
-    vehicleType: null,
-    files: {
-      license: null,
-      registration: null,
-      insurance: null,
-      check: null,
-      ssn: null,
-    },
-    photos: {
-      front: null,
-      driverSide: null,
-      passengerSide: null,
-      rear: null,
-    },
-    photoPreviews: {
-      front: null,
-      driverSide: null,
-      passengerSide: null,
-      rear: null,
-    },
+    fullName: '', email: '', phoneNumber: '', state: '', vehicleType: null,
+    files: { license: null, registration: null, insurance: null, check: null, ssn: null },
+    photos: { front: null, driverSide: null, passengerSide: null, rear: null },
+    photoPreviews: { front: null, driverSide: null, passengerSide: null, rear: null },
   });
+
+  const { startUpload: startDocUpload } = useUploadThing('documentUploader');
+  const { startUpload: startPhotoUpload } = useUploadThing('photoUploader');
 
   const ssnRef = useRef<HTMLInputElement>(null);
   const licenseRef = useRef<HTMLInputElement>(null);
@@ -219,99 +154,67 @@ export default function OnboardingPage() {
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    setFormData(prev => ({ ...prev, [name]: value }));
   };
 
   const handleVehicleSelect = (vehicleId: VehicleType) => {
-    setFormData((prev) => ({
-      ...prev,
-      vehicleType: vehicleId,
-    }));
+    setFormData(prev => ({ ...prev, vehicleType: vehicleId }));
   };
 
   const handleFileUpload = (fileType: FileType, file: File | null) => {
     if (!file) return;
-    setFormData((prev) => ({
-      ...prev,
-      files: {
-        ...prev.files,
-        [fileType]: file,
-      },
-    }));
+    setFormData(prev => ({ ...prev, files: { ...prev.files, [fileType]: file } }));
   };
 
   const handlePhotoUpload = (photoType: keyof typeof formData.photos, file: File | null) => {
     if (!file) return;
-
     const reader = new FileReader();
     reader.onload = (e) => {
       const preview = e.target?.result as string;
-      setFormData((prev) => ({
+      setFormData(prev => ({
         ...prev,
-        photos: {
-          ...prev.photos,
-          [photoType]: file,
-        },
-        photoPreviews: {
-          ...prev.photoPreviews,
-          [photoType]: preview,
-        },
+        photos: { ...prev.photos, [photoType]: file },
+        photoPreviews: { ...prev.photoPreviews, [photoType]: preview },
       }));
     };
     reader.readAsDataURL(file);
   };
 
-  const isStep1Valid = () => {
-    return (
-      formData.fullName.trim() !== '' &&
-      formData.email.trim() !== '' &&
-      formData.phoneNumber.trim() !== '' &&
-      formData.state.trim() !== '' &&
-      formData.vehicleType !== null
-    );
-  };
-
-  const isStep2Valid = () => {
-    return (
-      formData.files.ssn !== null &&
-      formData.files.license !== null &&
-      formData.files.registration !== null &&
-      formData.files.insurance !== null &&
-      formData.files.check !== null
-    );
-  };
-
-  const isStep3Valid = () => {
-    return (
-      formData.photos.front !== null &&
-      formData.photos.driverSide !== null &&
-      formData.photos.passengerSide !== null &&
-      formData.photos.rear !== null
-    );
-  };
+  const isStep1Valid = () => formData.fullName.trim() !== '' && formData.email.trim() !== '' && formData.phoneNumber.trim() !== '' && formData.state.trim() !== '' && formData.vehicleType !== null;
+  const isStep2Valid = () => formData.files.ssn !== null && formData.files.license !== null && formData.files.registration !== null && formData.files.insurance !== null && formData.files.check !== null;
+  const isStep3Valid = () => formData.photos.front !== null && formData.photos.driverSide !== null && formData.photos.passengerSide !== null && formData.photos.rear !== null;
 
   const handleContinue = () => {
-    if (currentStep === 1 && isStep1Valid()) {
-      setCurrentStep(2);
-    } else if (currentStep === 2 && isStep2Valid()) {
-      setCurrentStep(3);
-    } else if (currentStep === 3 && isStep3Valid()) {
-      setCurrentStep(4);
-    }
+    if (currentStep === 1 && isStep1Valid()) setCurrentStep(2);
+    else if (currentStep === 2 && isStep2Valid()) setCurrentStep(3);
+    else if (currentStep === 3 && isStep3Valid()) setCurrentStep(4);
   };
 
   const handleBack = () => {
-    if (currentStep > 1) {
-      setCurrentStep((prev) => (prev - 1) as 1 | 2 | 3 | 4);
-    }
+    if (currentStep > 1) setCurrentStep(prev => (prev - 1) as 1 | 2 | 3 | 4);
   };
 
   const handleSubmit = async () => {
     setIsSubmitting(true);
     try {
+      setUploadProgress('Uploading documents...');
+      const [ssnRes, licenseRes, regRes, insRes, checkRes] = await Promise.all([
+        startDocUpload([formData.files.ssn!]),
+        startDocUpload([formData.files.license!]),
+        startDocUpload([formData.files.registration!]),
+        startDocUpload([formData.files.insurance!]),
+        startDocUpload([formData.files.check!]),
+      ]);
+
+      setUploadProgress('Uploading photos...');
+      const [frontRes, driverRes, passengerRes, rearRes] = await Promise.all([
+        startPhotoUpload([formData.photos.front!]),
+        startPhotoUpload([formData.photos.driverSide!]),
+        startPhotoUpload([formData.photos.passengerSide!]),
+        startPhotoUpload([formData.photos.rear!]),
+      ]);
+
+      setUploadProgress('Submitting application...');
       const submitData = {
         fullName: formData.fullName,
         email: formData.email,
@@ -319,40 +222,35 @@ export default function OnboardingPage() {
         state: formData.state,
         vehicleType: formData.vehicleType,
         files: {
-          ssn: formData.files.ssn ? { name: formData.files.ssn.name, size: formData.files.ssn.size } : null,
-          license: formData.files.license ? { name: formData.files.license.name, size: formData.files.license.size } : null,
-          registration: formData.files.registration ? { name: formData.files.registration.name, size: formData.files.registration.size } : null,
-          insurance: formData.files.insurance ? { name: formData.files.insurance.name, size: formData.files.insurance.size } : null,
-          check: formData.files.check ? { name: formData.files.check.name, size: formData.files.check.size } : null,
+          ssn: { name: formData.files.ssn!.name, size: formData.files.ssn!.size, url: ssnRes?.[0]?.url || '' },
+          license: { name: formData.files.license!.name, size: formData.files.license!.size, url: licenseRes?.[0]?.url || '' },
+          registration: { name: formData.files.registration!.name, size: formData.files.registration!.size, url: regRes?.[0]?.url || '' },
+          insurance: { name: formData.files.insurance!.name, size: formData.files.insurance!.size, url: insRes?.[0]?.url || '' },
+          check: { name: formData.files.check!.name, size: formData.files.check!.size, url: checkRes?.[0]?.url || '' },
         },
         photos: {
-          front: formData.photos.front ? { name: formData.photos.front.name, size: formData.photos.front.size } : null,
-          driverSide: formData.photos.driverSide ? { name: formData.photos.driverSide.name, size: formData.photos.driverSide.size } : null,
-          passengerSide: formData.photos.passengerSide ? { name: formData.photos.passengerSide.name, size: formData.photos.passengerSide.size } : null,
-          rear: formData.photos.rear ? { name: formData.photos.rear.name, size: formData.photos.rear.size } : null,
+          front: { name: formData.photos.front!.name, size: formData.photos.front!.size, url: frontRes?.[0]?.url || '' },
+          driverSide: { name: formData.photos.driverSide!.name, size: formData.photos.driverSide!.size, url: driverRes?.[0]?.url || '' },
+          passengerSide: { name: formData.photos.passengerSide!.name, size: formData.photos.passengerSide!.size, url: passengerRes?.[0]?.url || '' },
+          rear: { name: formData.photos.rear!.name, size: formData.photos.rear!.size, url: rearRes?.[0]?.url || '' },
         },
       };
 
       const response = await fetch('/api/submit', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(submitData),
       });
 
       const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Failed to submit application');
-      }
-
+      if (!response.ok) throw new Error(data.message || 'Failed to submit');
       router.push(`/onboarding/success?applicationId=${data.applicationId}`);
     } catch (error) {
       console.error('Submission error:', error);
       alert('Failed to submit application. Please try again.');
     } finally {
       setIsSubmitting(false);
+      setUploadProgress('');
     }
   };
 
@@ -378,18 +276,11 @@ export default function OnboardingPage() {
             <div className="flex items-center justify-between mb-3">
               {[1, 2, 3, 4].map((step) => (
                 <div key={step} className="flex flex-col items-center flex-1">
-                  <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center font-semibold text-sm sm:text-base transition-all duration-300 ${
-                    step <= currentStep
-                      ? 'bg-gradient-to-r from-cyan-500 to-blue-500 text-white shadow-lg shadow-cyan-500/50'
-                      : 'bg-slate-800/50 text-gray-400 border border-slate-700/50'
-                  }`}>
+                  <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center font-semibold text-sm sm:text-base transition-all duration-300 ${step <= currentStep ? 'bg-gradient-to-r from-cyan-500 to-blue-500 text-white shadow-lg shadow-cyan-500/50' : 'bg-slate-800/50 text-gray-400 border border-slate-700/50'}`}>
                     {step}
                   </div>
                   <p className="text-xs sm:text-sm text-gray-400 mt-2 text-center">
-                    {step === 1 && 'Personal'}
-                    {step === 2 && 'Documents'}
-                    {step === 3 && 'Photos'}
-                    {step === 4 && 'Review'}
+                    {step === 1 && 'Personal'}{step === 2 && 'Documents'}{step === 3 && 'Photos'}{step === 4 && 'Review'}
                   </p>
                 </div>
               ))}
@@ -408,20 +299,20 @@ export default function OnboardingPage() {
                   <h2 className="text-2xl sm:text-3xl font-bold text-white mb-8">Personal Information</h2>
                   <div className="space-y-6">
                     <div>
-                      <label htmlFor="fullName" className="block text-sm font-semibold text-gray-300 mb-2">Full Name</label>
-                      <input type="text" id="fullName" name="fullName" value={formData.fullName} onChange={handleInputChange} className="w-full px-4 py-3 bg-slate-800/40 border border-slate-700/50 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-transparent transition-all" placeholder="John Doe" />
+                      <label className="block text-sm font-semibold text-gray-300 mb-2">Full Name</label>
+                      <input type="text" name="fullName" value={formData.fullName} onChange={handleInputChange} className="w-full px-4 py-3 bg-slate-800/40 border border-slate-700/50 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-transparent transition-all" placeholder="John Doe" />
                     </div>
                     <div>
-                      <label htmlFor="email" className="block text-sm font-semibold text-gray-300 mb-2">Email Address</label>
-                      <input type="email" id="email" name="email" value={formData.email} onChange={handleInputChange} className="w-full px-4 py-3 bg-slate-800/40 border border-slate-700/50 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-transparent transition-all" placeholder="john@example.com" />
+                      <label className="block text-sm font-semibold text-gray-300 mb-2">Email Address</label>
+                      <input type="email" name="email" value={formData.email} onChange={handleInputChange} className="w-full px-4 py-3 bg-slate-800/40 border border-slate-700/50 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-transparent transition-all" placeholder="john@example.com" />
                     </div>
                     <div>
-                      <label htmlFor="phoneNumber" className="block text-sm font-semibold text-gray-300 mb-2">Phone Number</label>
-                      <input type="tel" id="phoneNumber" name="phoneNumber" value={formData.phoneNumber} onChange={handleInputChange} className="w-full px-4 py-3 bg-slate-800/40 border border-slate-700/50 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-transparent transition-all" placeholder="(555) 123-4567" />
+                      <label className="block text-sm font-semibold text-gray-300 mb-2">Phone Number</label>
+                      <input type="tel" name="phoneNumber" value={formData.phoneNumber} onChange={handleInputChange} className="w-full px-4 py-3 bg-slate-800/40 border border-slate-700/50 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-transparent transition-all" placeholder="(555) 123-4567" />
                     </div>
                     <div>
-                      <label htmlFor="state" className="block text-sm font-semibold text-gray-300 mb-2">State</label>
-                      <input type="text" id="state" name="state" value={formData.state} onChange={handleInputChange} className="w-full px-4 py-3 bg-slate-800/40 border border-slate-700/50 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-transparent transition-all" placeholder="California" />
+                      <label className="block text-sm font-semibold text-gray-300 mb-2">State</label>
+                      <input type="text" name="state" value={formData.state} onChange={handleInputChange} className="w-full px-4 py-3 bg-slate-800/40 border border-slate-700/50 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-transparent transition-all" placeholder="California" />
                     </div>
                     <div>
                       <label className="block text-sm font-semibold text-gray-300 mb-4">Vehicle Type</label>
@@ -478,41 +369,38 @@ export default function OnboardingPage() {
                     <div><p className="text-sm text-gray-400 mb-1">Email</p><p className="text-white font-medium">{formData.email}</p></div>
                     <div><p className="text-sm text-gray-400 mb-1">Phone Number</p><p className="text-white font-medium">{formData.phoneNumber}</p></div>
                     <div><p className="text-sm text-gray-400 mb-1">State</p><p className="text-white font-medium">{formData.state}</p></div>
-                    <div><p className="text-sm text-gray-400 mb-1">Vehicle Type</p><p className="text-white font-medium">{VEHICLES.find((v) => v.id === formData.vehicleType)?.label}</p></div>
+                    <div><p className="text-sm text-gray-400 mb-1">Vehicle Type</p><p className="text-white font-medium">{VEHICLES.find(v => v.id === formData.vehicleType)?.label}</p></div>
                   </div>
                 </div>
-
                 <div className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-2xl p-6 sm:p-8 shadow-2xl">
                   <h3 className="text-xl font-bold text-white mb-6">Documents</h3>
                   <div className="space-y-3">
-                    {[0, 1, 2, 3, 4].map((idx) => {
-                      const docTypes = ['ssn', 'license', 'registration', 'insurance', 'check'] as const;
-                      const docType = docTypes[idx];
-                      const file = formData.files[docType];
-                      return (
-                        <div key={docType} className="flex items-center justify-between p-4 bg-slate-800/30 rounded-lg">
-                          <span className="text-gray-300">{DOCUMENT_TYPES[idx].label}</span>
-                          {file && (
-                            <div className="flex items-center space-x-2">
-                              <span className="text-sm text-gray-400">{file.name}</span>
-                              <svg className="w-5 h-5 text-emerald-500" fill="currentColor" viewBox="0 0 20 20">
-                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                              </svg>
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
+                    {(['ssn', 'license', 'registration', 'insurance', 'check'] as const).map((docType, idx) => (
+                      <div key={docType} className="flex items-center justify-between p-4 bg-slate-800/30 rounded-lg">
+                        <span className="text-gray-300">{DOCUMENT_TYPES[idx].label}</span>
+                        {formData.files[docType] && (
+                          <div className="flex items-center space-x-2">
+                            <span className="text-sm text-gray-400">{formData.files[docType]?.name}</span>
+                            <svg className="w-5 h-5 text-emerald-500" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg>
+                          </div>
+                        )}
+                      </div>
+                    ))}
                   </div>
                 </div>
-
                 <div className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-2xl p-6 sm:p-8 shadow-2xl">
                   <h3 className="text-xl font-bold text-white mb-6">Vehicle Photos</h3>
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                    {formData.photoPreviews.front && (<div className="relative"><img src={formData.photoPreviews.front} alt="Front" className="w-full h-32 object-cover rounded-lg" /><div className="absolute inset-0 bg-emerald-500/20 rounded-lg flex items-center justify-center"><svg className="w-6 h-6 text-emerald-400" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg></div></div>)}
-                    {formData.photoPreviews.driverSide && (<div className="relative"><img src={formData.photoPreviews.driverSide} alt="Driver Side" className="w-full h-32 object-cover rounded-lg" /><div className="absolute inset-0 bg-emerald-500/20 rounded-lg flex items-center justify-center"><svg className="w-6 h-6 text-emerald-400" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg></div></div>)}
-                    {formData.photoPreviews.passengerSide && (<div className="relative"><img src={formData.photoPreviews.passengerSide} alt="Passenger Side" className="w-full h-32 object-cover rounded-lg" /><div className="absolute inset-0 bg-emerald-500/20 rounded-lg flex items-center justify-center"><svg className="w-6 h-6 text-emerald-400" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg></div></div>)}
-                    {formData.photoPreviews.rear && (<div className="relative"><img src={formData.photoPreviews.rear} alt="Rear" className="w-full h-32 object-cover rounded-lg" /><div className="absolute inset-0 bg-emerald-500/20 rounded-lg flex items-center justify-center"><svg className="w-6 h-6 text-emerald-400" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg></div></div>)}
+                    {(['front', 'driverSide', 'passengerSide', 'rear'] as const).map(pos => (
+                      formData.photoPreviews[pos] && (
+                        <div key={pos} className="relative">
+                          <img src={formData.photoPreviews[pos]!} alt={pos} className="w-full h-32 object-cover rounded-lg" />
+                          <div className="absolute inset-0 bg-emerald-500/20 rounded-lg flex items-center justify-center">
+                            <svg className="w-6 h-6 text-emerald-400" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg>
+                          </div>
+                        </div>
+                      )
+                    ))}
                   </div>
                 </div>
               </div>
@@ -526,7 +414,9 @@ export default function OnboardingPage() {
             {currentStep < 4 ? (
               <button onClick={handleContinue} disabled={(currentStep === 1 && !isStep1Valid()) || (currentStep === 2 && !isStep2Valid()) || (currentStep === 3 && !isStep3Valid())} className="flex-1 px-8 py-3 bg-gradient-to-r from-cyan-500 to-blue-500 text-white font-semibold rounded-lg hover:from-cyan-600 hover:to-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg shadow-cyan-500/25">Continue</button>
             ) : (
-              <button onClick={handleSubmit} disabled={isSubmitting} className="flex-1 px-8 py-3 bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-semibold rounded-lg hover:from-emerald-600 hover:to-teal-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg shadow-emerald-500/25">{isSubmitting ? 'Submitting...' : 'Submit Application'}</button>
+              <button onClick={handleSubmit} disabled={isSubmitting} className="flex-1 px-8 py-3 bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-semibold rounded-lg hover:from-emerald-600 hover:to-teal-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg shadow-emerald-500/25">
+                {isSubmitting ? uploadProgress || 'Submitting...' : 'Submit Application'}
+              </button>
             )}
           </div>
         </div>

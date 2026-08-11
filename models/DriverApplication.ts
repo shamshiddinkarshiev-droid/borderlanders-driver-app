@@ -1,5 +1,12 @@
 import mongoose from 'mongoose';
 
+interface IFileEntry {
+  fileName: string;
+  fileSize: number;
+  fileUrl: string;
+  uploadedAt: Date;
+}
+
 interface IDriverApplication {
   fullName: string;
   email: string;
@@ -7,22 +14,29 @@ interface IDriverApplication {
   state: string;
   vehicleType: 'cargo-van' | 'sprinter-van' | 'box-truck';
   files: {
-    ssn: { fileName: string; fileSize: number; uploadedAt: Date; };
-    license: { fileName: string; fileSize: number; uploadedAt: Date; };
-    registration: { fileName: string; fileSize: number; uploadedAt: Date; };
-    insurance: { fileName: string; fileSize: number; uploadedAt: Date; };
-    check: { fileName: string; fileSize: number; uploadedAt: Date; };
+    ssn: IFileEntry;
+    license: IFileEntry;
+    registration: IFileEntry;
+    insurance: IFileEntry;
+    check: IFileEntry;
   };
   photos: {
-    front: { fileName: string; fileSize: number; uploadedAt: Date; };
-    driverSide: { fileName: string; fileSize: number; uploadedAt: Date; };
-    passengerSide: { fileName: string; fileSize: number; uploadedAt: Date; };
-    rear: { fileName: string; fileSize: number; uploadedAt: Date; };
+    front: IFileEntry;
+    driverSide: IFileEntry;
+    passengerSide: IFileEntry;
+    rear: IFileEntry;
   };
   status: 'pending' | 'hired' | 'rejected';
   submittedAt: Date;
   notes?: string;
 }
+
+const fileEntrySchema = {
+  fileName: String,
+  fileSize: Number,
+  fileUrl: String,
+  uploadedAt: Date,
+};
 
 const driverApplicationSchema = new mongoose.Schema<IDriverApplication>(
   {
@@ -32,17 +46,17 @@ const driverApplicationSchema = new mongoose.Schema<IDriverApplication>(
     state: { type: String, required: true, trim: true },
     vehicleType: { type: String, enum: ['cargo-van', 'sprinter-van', 'box-truck'], required: true },
     files: {
-      ssn: { fileName: String, fileSize: Number, uploadedAt: Date },
-      license: { fileName: String, fileSize: Number, uploadedAt: Date },
-      registration: { fileName: String, fileSize: Number, uploadedAt: Date },
-      insurance: { fileName: String, fileSize: Number, uploadedAt: Date },
-      check: { fileName: String, fileSize: Number, uploadedAt: Date },
+      ssn: fileEntrySchema,
+      license: fileEntrySchema,
+      registration: fileEntrySchema,
+      insurance: fileEntrySchema,
+      check: fileEntrySchema,
     },
     photos: {
-      front: { fileName: String, fileSize: Number, uploadedAt: Date },
-      driverSide: { fileName: String, fileSize: Number, uploadedAt: Date },
-      passengerSide: { fileName: String, fileSize: Number, uploadedAt: Date },
-      rear: { fileName: String, fileSize: Number, uploadedAt: Date },
+      front: fileEntrySchema,
+      driverSide: fileEntrySchema,
+      passengerSide: fileEntrySchema,
+      rear: fileEntrySchema,
     },
     status: { type: String, enum: ['pending', 'hired', 'rejected'], default: 'pending' },
     submittedAt: { type: Date, default: Date.now },
