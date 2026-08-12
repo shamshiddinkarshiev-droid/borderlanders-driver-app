@@ -7,12 +7,37 @@ export const ourFileRouter = {
     image: { maxFileSize: "4MB", maxFileCount: 1 },
     pdf: { maxFileSize: "4MB", maxFileCount: 1 },
   }).onUploadComplete(async ({ file }) => {
-    return { url: file.url };
+    const url = file.ufsUrl || file.url || "";
+
+    console.log("DOCUMENT UPLOAD:", {
+      name: file.name,
+      url,
+      ufsUrl: file.ufsUrl,
+      legacyUrl: file.url,
+    });
+
+    return {
+      url,
+      ufsUrl: file.ufsUrl || "",
+    };
   }),
+
   photoUploader: f({
     image: { maxFileSize: "4MB", maxFileCount: 1 },
   }).onUploadComplete(async ({ file }) => {
-    return { url: file.url };
+    const url = file.ufsUrl || file.url || "";
+
+    console.log("PHOTO UPLOAD:", {
+      name: file.name,
+      url,
+      ufsUrl: file.ufsUrl,
+      legacyUrl: file.url,
+    });
+
+    return {
+      url,
+      ufsUrl: file.ufsUrl || "",
+    };
   }),
 } satisfies FileRouter;
 
