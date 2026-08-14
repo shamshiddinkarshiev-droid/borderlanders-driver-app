@@ -43,7 +43,8 @@ function isValidUploadedFile(
     return false;
   }
 
-  const value = file as Record<string, unknown>;
+  const value =
+    file as Record<string, unknown>;
 
   return (
     typeof value.name === "string" &&
@@ -66,7 +67,8 @@ export async function POST(
       return NextResponse.json(
         {
           success: false,
-          message: "No application data received.",
+          message:
+            "No application data received.",
         },
         {
           status: 400,
@@ -176,7 +178,9 @@ export async function POST(
           body.fullName.trim(),
 
         email:
-          body.email.trim().toLowerCase(),
+          body.email
+            .trim()
+            .toLowerCase(),
 
         phoneNumber:
           body.phoneNumber.trim(),
