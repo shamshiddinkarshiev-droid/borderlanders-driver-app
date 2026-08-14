@@ -1,28 +1,41 @@
-import mongoose from 'mongoose';
+import mongoose from "mongoose";
 
-const MONGODB_URI = 'mongodb://shamshiddinkarshiev_db_user:7s3gxg9RqKdNXFmg@ac-bu6a5fe-shard-00-00.u4yvkpc.mongodb.net:27017,ac-bu6a5fe-shard-00-01.u4yvkpc.mongodb.net:27017,ac-bu6a5fe-shard-00-02.u4yvkpc.mongodb.net:27017/borderlanders?ssl=true&replicaSet=atlas-9einh4-shard-0&authSource=admin&appName=Cluster0';
+const MONGODB_URI = process.env.MONGODB_URI;
 
-let cached = (global as any).mongoose;
-
-if (!cached) {
-  cached = (global as any).mongoose = { conn: null, promise: null };
+if (!MONGODB_URI) {
+  throw new Error(
+    "Please define MONGODB_URI in your .env.local file"
+  );
 }
 
-async function dbConnect() {
+interface MongooseCache {
+  conn: typeof mongoose | null;
+  promise: Promise<typeof mongoose> | null;
+}
+
+declare global {
+  // eslint-disable-next-line no-var
+  var mongooseCache: MongooseCache | undefined;
+}
+
+const cached: MongooseCache =
+  global.mongooseCache || {
+    conn: null,
+    promise: null,
+  };
+
+global.mongooseCache = cached;
+
+export async function connectDB() {
   if (cached.conn) {
     return cached.conn;
   }
 
   if (!cached.promise) {
-    cached.promise = mongoose.connect(MONGODB_URI, {
-      bufferCommands: false,
-      serverSelectionTimeoutMS: 5000,
-      socketTimeoutMS: 45000,
-    });
+    cached.promise = mongoose.connect(MONGODB_URI);
   }
 
   cached.conn = await cached.promise;
+
   return cached.conn;
 }
-
-export default dbConnect;
