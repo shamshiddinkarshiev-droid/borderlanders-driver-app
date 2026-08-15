@@ -2,7 +2,7 @@
 
 import React, { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { useUploadThing } from '@/lib/uploadthing';
+import { uploadFiles } from '@/lib/uploadthing';
 
 type VehicleType = 'cargo-van' | 'sprinter-van' | 'box-truck' | null;
 type FileType = 'license' | 'registration' | 'insurance' | 'check' | 'ssn';
@@ -131,41 +131,6 @@ export default function OnboardingPage() {
     photoPreviews: { front: null, driverSide: null, passengerSide: null, rear: null },
   });
 
- const docUrls: string[] = [];
-const photoUrls: string[] = [];
-
-const { startUpload: startDocUpload } = useUploadThing('documentUploader', {
-  onClientUploadComplete: (res) => {
-    console.log('DOC COMPLETE:', JSON.stringify(res));
-    if (res?.[0]) docUrls.push(res[0].ufsUrl || res[0].url || '');
-  },
-  onUploadError: (error) => {
-    console.error('DOC ERROR:', error);
-  },
-});
-
-const { startUpload: startPhotoUpload } = useUploadThing('photoUploader', {
-  onClientUploadComplete: (res) => {
-    console.log('PHOTO COMPLETE:', JSON.stringify(res));
-    if (res?.[0]) photoUrls.push(res[0].ufsUrl || res[0].url || '');
-  },
-  onUploadError: (error) => {
-    console.error('PHOTO ERROR:', error);
-  },
-});
-    onUploadError: (error) => {
-      console.error('DOC UPLOAD ERROR:', error);
-      alert('Document upload failed: ' + error.message);
-    },
-  });
-
-  const { startUpload: startPhotoUpload } = useUploadThing('photoUploader', {
-    onUploadError: (error) => {
-      console.error('PHOTO UPLOAD ERROR:', error);
-      alert('Photo upload failed: ' + error.message);
-    },
-  });
-
   const ssnRef = useRef<HTMLInputElement>(null);
   const licenseRef = useRef<HTMLInputElement>(null);
   const registrationRef = useRef<HTMLInputElement>(null);
@@ -212,41 +177,36 @@ const { startUpload: startPhotoUpload } = useUploadThing('photoUploader', {
     if (currentStep > 1) setCurrentStep(prev => (prev - 1) as 1 | 2 | 3 | 4);
   };
 
-  const getUrl = (res: any) => {
-    console.log('Upload response:', JSON.stringify(res));
-    return res?.[0]?.ufsUrl || res?.[0]?.url || res?.[0]?.fileUrl || res?.[0]?.appUrl || '';
+  const uploadSingleFile = async (file: File, endpoint: 'documentUploader' | 'photoUploader'): Promise<string> => {
+    const res = await uploadFiles(endpoint, { files: [file] });
+    console.log('Upload result:', JSON.stringify(res));
+    return res?.[0]?.url || res?.[0]?.ufsUrl || '';
   };
 
   const handleSubmit = async () => {
     setIsSubmitting(true);
     try {
       setUploadProgress('Uploading documents...');
-      const [ssnRes, licenseRes, regRes, insRes, checkRes] = await Promise.all([
-        startDocUpload([formData.files.ssn!]),
-        startDocUpload([formData.files.license!]),
-        startDocUpload([formData.files.registration!]),
-        startDocUpload([formData.files.insurance!]),
-        startDocUpload([formData.files.check!]),
+      const [ssnUrl, licenseUrl, regUrl, insUrl, checkUrl] = await Promise.all([
+        uploadSingleFile(formData.files.ssn!, 'documentUploader'),
+        uploadSingleFile(formData.files.license!, 'documentUploader'),
+        uploadSingleFile(formData.files.registration!, 'documentUploader'),
+        uploadSingleFile(formData.files.insurance!, 'documentUploader'),
+        uploadSingleFile(formData.files.check!, 'documentUploader'),
       ]);
 
       setUploadProgress('Uploading photos...');
-      const [frontRes, driverRes, passengerRes, rearRes] = await Promise.all([
-        startPhotoUpload([formData.photos.front!]),
-        startPhotoUpload([formData.photos.driverSide!]),
-        startPhotoUpload([formData.photos.passengerSide!]),
-        startPhotoUpload([formData.photos.rear!]),
+      const [frontUrl, driverUrl, passengerUrl, rearUrl] = await Promise.all([
+        uploadSingleFile(formData.photos.front!, 'photoUploader'),
+        uploadSingleFile(formData.photos.driverSide!, 'photoUploader'),
+        uploadSingleFile(formData.photos.passengerSide!, 'photoUploader'),
+        uploadSingleFile(formData.photos.rear!, 'photoUploader'),
       ]);
 
       const urls = {
-        ssn: getUrl(ssnRes),
-        license: getUrl(licenseRes),
-        registration: getUrl(regRes),
-        insurance: getUrl(insRes),
-        check: getUrl(checkRes),
-        front: getUrl(frontRes),
-        driverSide: getUrl(driverRes),
-        passengerSide: getUrl(passengerRes),
-        rear: getUrl(rearRes),
+        ssn: ssnUrl, license: licenseUrl, registration: regUrl,
+        insurance: insUrl, check: checkUrl, front: frontUrl,
+        driverSide: driverUrl, passengerSide: passengerUrl, rear: rearUrl,
       };
 
       console.log('ALL URLS:', urls);
@@ -259,10 +219,8 @@ const { startUpload: startPhotoUpload } = useUploadThing('photoUploader', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          fullName: formData.fullName,
-          email: formData.email,
-          phoneNumber: formData.phoneNumber,
-          state: formData.state,
+          fullName: formData.fullName, email: formData.email,
+          phoneNumber: formData.phoneNumber, state: formData.state,
           vehicleType: formData.vehicleType,
           files: {
             ssn: { name: formData.files.ssn!.name, size: formData.files.ssn!.size, url: urls.ssn },
@@ -329,7 +287,6 @@ const { startUpload: startPhotoUpload } = useUploadThing('photoUploader', {
 
         <div className="flex-1 px-4 sm:px-6 lg:px-8 pb-12">
           <div className="max-w-2xl mx-auto">
-
             {currentStep === 1 && (
               <div className="animate-fadeIn">
                 <div className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-2xl p-6 sm:p-8 shadow-2xl">
