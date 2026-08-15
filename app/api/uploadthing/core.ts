@@ -1,6 +1,16 @@
-import { createUploadthing, type FileRouter } from "uploadthing/next";
+import {
+  createUploadthing,
+  type FileRouter,
+} from "uploadthing/next";
 
 const f = createUploadthing();
+
+const getFileUrl = (file: {
+  ufsUrl?: string | null;
+  url?: string | null;
+}) => {
+  return file.ufsUrl || file.url || "";
+};
 
 export const ourFileRouter = {
   documentUploader: f({
@@ -13,7 +23,7 @@ export const ourFileRouter = {
       maxFileCount: 1,
     },
   }).onUploadComplete(async ({ file }) => {
-    const url = file.ufsUrl || file.url || "";
+    const url = getFileUrl(file);
 
     console.log("DOCUMENT UPLOAD COMPLETE:", {
       name: file.name,
@@ -26,7 +36,7 @@ export const ourFileRouter = {
 
     if (!url) {
       throw new Error(
-        `UploadThing did not return a URL for ${file.name}`
+        `UploadThing returned no usable URL for ${file.name}`
       );
     }
 
@@ -44,7 +54,7 @@ export const ourFileRouter = {
       maxFileCount: 1,
     },
   }).onUploadComplete(async ({ file }) => {
-    const url = file.ufsUrl || file.url || "";
+    const url = getFileUrl(file);
 
     console.log("PHOTO UPLOAD COMPLETE:", {
       name: file.name,
@@ -57,7 +67,7 @@ export const ourFileRouter = {
 
     if (!url) {
       throw new Error(
-        `UploadThing did not return a URL for ${file.name}`
+        `UploadThing returned no usable URL for ${file.name}`
       );
     }
 
