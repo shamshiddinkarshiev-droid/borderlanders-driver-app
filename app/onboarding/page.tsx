@@ -131,7 +131,28 @@ export default function OnboardingPage() {
     photoPreviews: { front: null, driverSide: null, passengerSide: null, rear: null },
   });
 
-  const { startUpload: startDocUpload } = useUploadThing('documentUploader', {
+ const docUrls: string[] = [];
+const photoUrls: string[] = [];
+
+const { startUpload: startDocUpload } = useUploadThing('documentUploader', {
+  onClientUploadComplete: (res) => {
+    console.log('DOC COMPLETE:', JSON.stringify(res));
+    if (res?.[0]) docUrls.push(res[0].ufsUrl || res[0].url || '');
+  },
+  onUploadError: (error) => {
+    console.error('DOC ERROR:', error);
+  },
+});
+
+const { startUpload: startPhotoUpload } = useUploadThing('photoUploader', {
+  onClientUploadComplete: (res) => {
+    console.log('PHOTO COMPLETE:', JSON.stringify(res));
+    if (res?.[0]) photoUrls.push(res[0].ufsUrl || res[0].url || '');
+  },
+  onUploadError: (error) => {
+    console.error('PHOTO ERROR:', error);
+  },
+});
     onUploadError: (error) => {
       console.error('DOC UPLOAD ERROR:', error);
       alert('Document upload failed: ' + error.message);
