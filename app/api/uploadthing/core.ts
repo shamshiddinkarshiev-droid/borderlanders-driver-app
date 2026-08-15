@@ -6,19 +6,17 @@ export const ourFileRouter = {
   documentUploader: f({
     image: { maxFileSize: "4MB", maxFileCount: 1 },
     pdf: { maxFileSize: "4MB", maxFileCount: 1 },
-  })
-  .middleware(() => ({ uploadedBy: "driver" }))
-  .onUploadComplete(async ({ file }) => {
-    console.log("File uploaded:", file.url);
-    return { url: file.url };
+  }, { awaitServerData: false })
+  .middleware(() => ({}))
+  .onUploadComplete(({ file }) => {
+    return { url: file.ufsUrl || file.url };
   }),
   photoUploader: f({
     image: { maxFileSize: "4MB", maxFileCount: 1 },
-  })
-  .middleware(() => ({ uploadedBy: "driver" }))
-  .onUploadComplete(async ({ file }) => {
-    console.log("Photo uploaded:", file.url);
-    return { url: file.url };
+  }, { awaitServerData: false })
+  .middleware(() => ({}))
+  .onUploadComplete(({ file }) => {
+    return { url: file.ufsUrl || file.url };
   }),
 } satisfies FileRouter;
 
