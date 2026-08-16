@@ -14,40 +14,18 @@ function Modal({
 }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
-      <div
-        className="absolute inset-0 bg-black/70 backdrop-blur-sm"
-        onClick={onCancel}
-      />
-
+      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onCancel} />
       <div className="relative backdrop-blur-xl bg-slate-900 border border-white/10 rounded-3xl p-8 max-w-md w-full shadow-2xl">
         {type === 'hire' ? (
           <>
             <div className="w-20 h-20 bg-emerald-500/20 border border-emerald-500/30 rounded-2xl flex items-center justify-center mx-auto mb-6">
               <span className="text-4xl">🤝</span>
             </div>
-
-            <h2 className="text-2xl font-bold text-white text-center mb-2">
-              Hire This Driver?
-            </h2>
-
-            <p className="text-gray-400 text-center mb-8">
-              This driver will be moved to your hired drivers list.
-            </p>
-
+            <h2 className="text-2xl font-bold text-white text-center mb-2">Hire This Driver?</h2>
+            <p className="text-gray-400 text-center mb-8">This driver will be moved to your hired drivers list.</p>
             <div className="flex gap-3">
-              <button
-                onClick={onCancel}
-                className="flex-1 px-6 py-3 bg-white/5 border border-white/10 text-gray-400 font-semibold rounded-xl hover:bg-white/10 transition-all"
-              >
-                Cancel
-              </button>
-
-              <button
-                onClick={onConfirm}
-                className="flex-1 px-6 py-3 bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-bold rounded-xl hover:from-emerald-600 hover:to-teal-600 transition-all"
-              >
-                Yes, Hire!
-              </button>
+              <button onClick={onCancel} className="flex-1 px-6 py-3 bg-white/5 border border-white/10 text-gray-400 font-semibold rounded-xl hover:bg-white/10 transition-all">Cancel</button>
+              <button onClick={onConfirm} className="flex-1 px-6 py-3 bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-bold rounded-xl hover:from-emerald-600 hover:to-teal-600 transition-all">Yes, Hire!</button>
             </div>
           </>
         ) : (
@@ -55,37 +33,12 @@ function Modal({
             <div className="w-20 h-20 bg-red-500/10 border border-red-500/20 rounded-2xl flex items-center justify-center mx-auto mb-6">
               <span className="text-4xl">🗑️</span>
             </div>
-
-            <h2 className="text-2xl font-bold text-white text-center mb-2">
-              Delete Application?
-            </h2>
-
-            <p className="text-gray-400 text-center mb-2">
-              This action{' '}
-              <span className="text-red-400 font-semibold">
-                cannot be undone
-              </span>
-              .
-            </p>
-
-            <p className="text-gray-500 text-sm text-center mb-8">
-              All data will be permanently removed.
-            </p>
-
+            <h2 className="text-2xl font-bold text-white text-center mb-2">Delete Application?</h2>
+            <p className="text-gray-400 text-center mb-2">This action <span className="text-red-400 font-semibold">cannot be undone</span>.</p>
+            <p className="text-gray-500 text-sm text-center mb-8">All data will be permanently removed.</p>
             <div className="flex gap-3">
-              <button
-                onClick={onCancel}
-                className="flex-1 px-6 py-3 bg-white/5 border border-white/10 text-gray-400 font-semibold rounded-xl hover:bg-white/10 transition-all"
-              >
-                Cancel
-              </button>
-
-              <button
-                onClick={onConfirm}
-                className="flex-1 px-6 py-3 bg-gradient-to-r from-red-500 to-rose-600 text-white font-bold rounded-xl hover:from-red-600 hover:to-rose-700 transition-all"
-              >
-                Delete Forever
-              </button>
+              <button onClick={onCancel} className="flex-1 px-6 py-3 bg-white/5 border border-white/10 text-gray-400 font-semibold rounded-xl hover:bg-white/10 transition-all">Cancel</button>
+              <button onClick={onConfirm} className="flex-1 px-6 py-3 bg-gradient-to-r from-red-500 to-rose-600 text-white font-bold rounded-xl hover:from-red-600 hover:to-rose-700 transition-all">Delete Forever</button>
             </div>
           </>
         )}
@@ -97,7 +50,6 @@ function Modal({
 export default function ApplicationDetail() {
   const router = useRouter();
   const params = useParams();
-
   const [application, setApplication] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [modal, setModal] = useState<'hire' | 'delete' | null>(null);
@@ -106,31 +58,16 @@ export default function ApplicationDetail() {
 
   useEffect(() => {
     const isLoggedIn = localStorage.getItem('adminLoggedIn');
-
-    if (!isLoggedIn) {
-      router.push('/admin/login');
-      return;
-    }
-
+    if (!isLoggedIn) { router.push('/admin/login'); return; }
     fetchApplication();
   }, [router]);
 
   const fetchApplication = async () => {
     try {
-      const response = await fetch('/api/applications', {
-        cache: 'no-store',
-      });
-
+      const response = await fetch('/api/applications', { cache: 'no-store' });
       const data = await response.json();
-
-      const id = Array.isArray(params.id)
-        ? params.id[0]
-        : params.id;
-
-      const app = data.applications.find(
-        (a: any) => a._id === id
-      );
-
+      const id = Array.isArray(params.id) ? params.id[0] : params.id;
+      const app = data.applications.find((a: any) => a._id === id);
       setApplication(app);
     } catch (error) {
       console.error(error);
@@ -141,30 +78,16 @@ export default function ApplicationDetail() {
 
   const hireDriver = async () => {
     setIsProcessing(true);
-
     try {
-      const id = Array.isArray(params.id)
-        ? params.id[0]
-        : params.id;
-
+      const id = Array.isArray(params.id) ? params.id[0] : params.id;
       const response = await fetch(`/api/applications/${id}`, {
         method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          status: 'hired',
-        }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'hired' }),
       });
-
       const data = await response.json();
-
-      if (data.success) {
-        setModal(null);
-        router.push('/admin/dashboard');
-      } else {
-        alert(data.message || 'Failed to hire driver');
-      }
+      if (data.success) { setModal(null); router.push('/admin/dashboard'); }
+      else alert(data.message || 'Failed to hire driver');
     } catch (error) {
       console.error(error);
       alert('Something went wrong');
@@ -175,24 +98,12 @@ export default function ApplicationDetail() {
 
   const deleteApplication = async () => {
     setIsProcessing(true);
-
     try {
-      const id = Array.isArray(params.id)
-        ? params.id[0]
-        : params.id;
-
-      const response = await fetch(`/api/applications/${id}`, {
-        method: 'DELETE',
-      });
-
+      const id = Array.isArray(params.id) ? params.id[0] : params.id;
+      const response = await fetch(`/api/applications/${id}`, { method: 'DELETE' });
       const data = await response.json();
-
-      if (data.success) {
-        setModal(null);
-        router.push('/admin/dashboard');
-      } else {
-        alert(data.message || 'Failed to delete application');
-      }
+      if (data.success) { setModal(null); router.push('/admin/dashboard'); }
+      else alert(data.message || 'Failed to delete application');
     } catch (error) {
       console.error(error);
       alert('Something went wrong');
@@ -207,40 +118,16 @@ export default function ApplicationDetail() {
     return '🚛';
   };
 
-  /*
-   * Some upload systems return `fileUrl`, while others may return
-   * `url` or `ufsUrl`.
-   *
-   * We check all of them.
-   */
   const getFileUrl = (file: any) => {
     if (!file) return null;
-
-    return (
-      file.fileUrl ||
-      file.url ||
-      file.ufsUrl ||
-      null
-    );
+    return file.fileUrl || file.url || file.ufsUrl || null;
   };
 
   const photos = [
-    {
-      name: 'Front',
-      photo: application?.photos?.front,
-    },
-    {
-      name: 'Driver Side',
-      photo: application?.photos?.driverSide,
-    },
-    {
-      name: 'Passenger Side',
-      photo: application?.photos?.passengerSide,
-    },
-    {
-      name: 'Rear',
-      photo: application?.photos?.rear,
-    },
+    { name: 'Front', photo: application?.photos?.front },
+    { name: 'Driver Side', photo: application?.photos?.driverSide },
+    { name: 'Passenger Side', photo: application?.photos?.passengerSide },
+    { name: 'Rear', photo: application?.photos?.rear },
   ];
 
   if (isLoading) {
@@ -264,58 +151,20 @@ export default function ApplicationDetail() {
 
       {/* IMAGE VIEWER */}
       {selectedImage && (
-        <div
-          className="fixed inset-0 z-[100] bg-black/90 flex items-center justify-center p-6"
-          onClick={() => setSelectedImage(null)}
-        >
-          <button
-            onClick={() => setSelectedImage(null)}
-            className="absolute top-6 right-6 w-10 h-10 rounded-full bg-white/10 text-white text-xl hover:bg-white/20"
-          >
-            ✕
-          </button>
-
-          <img
-            src={selectedImage}
-            alt="Vehicle"
-            className="max-w-full max-h-[90vh] object-contain rounded-xl"
-            onClick={(e) => e.stopPropagation()}
-          />
+        <div className="fixed inset-0 z-[100] bg-black/90 flex items-center justify-center p-6" onClick={() => setSelectedImage(null)}>
+          <button onClick={() => setSelectedImage(null)} className="absolute top-6 right-6 w-10 h-10 rounded-full bg-white/10 text-white text-xl hover:bg-white/20">✕</button>
+          <img src={selectedImage} alt="Vehicle" className="max-w-full max-h-[90vh] object-contain rounded-xl" onClick={(e) => e.stopPropagation()} />
         </div>
       )}
 
-      {modal && (
-        <Modal
-          type={modal}
-          onConfirm={
-            modal === 'hire'
-              ? hireDriver
-              : deleteApplication
-          }
-          onCancel={() => setModal(null)}
-        />
-      )}
+      {modal && <Modal type={modal} onConfirm={modal === 'hire' ? hireDriver : deleteApplication} onCancel={() => setModal(null)} />}
 
       {/* HEADER */}
       <div className="px-6 py-4 border-b border-white/5 bg-slate-950/80 backdrop-blur sticky top-0 z-10">
         <div className="max-w-5xl mx-auto flex items-center justify-between">
-          <button
-            onClick={() => router.push('/admin/dashboard')}
-            className="text-gray-400 hover:text-white transition-all"
-          >
-            ← Back
-          </button>
-
-          <span
-            className={`px-3 py-1 rounded-full text-sm font-medium border ${
-              application.status === 'hired'
-                ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
-                : 'bg-yellow-500/10 border-yellow-500/30 text-yellow-400'
-            }`}
-          >
-            {application.status === 'hired'
-              ? '✓ Hired'
-              : '⏳ Pending'}
+          <button onClick={() => router.push('/admin/dashboard')} className="text-gray-400 hover:text-white transition-all">← Back</button>
+          <span className={`px-3 py-1 rounded-full text-sm font-medium border ${application.status === 'hired' ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' : 'bg-yellow-500/10 border-yellow-500/30 text-yellow-400'}`}>
+            {application.status === 'hired' ? '✓ Hired' : '⏳ Pending'}
           </span>
         </div>
       </div>
@@ -325,258 +174,103 @@ export default function ApplicationDetail() {
         {/* DRIVER INFO */}
         <div className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-2xl p-6">
           <div className="flex items-center gap-4 mb-6">
-
             <div className="w-16 h-16 bg-gradient-to-r from-cyan-500/20 to-blue-500/20 border border-cyan-500/30 rounded-2xl flex items-center justify-center text-3xl">
               {getVehicleIcon(application.vehicleType)}
             </div>
-
             <div>
-              <h2 className="text-2xl font-bold text-white">
-                {application.fullName}
-              </h2>
-
-              <p className="text-gray-400">
-                {application.vehicleType}
-              </p>
+              <h2 className="text-2xl font-bold text-white">{application.fullName}</h2>
+              <p className="text-gray-400">{application.vehicleType}</p>
             </div>
-
           </div>
-
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-
-            <div className="bg-slate-800/30 rounded-xl p-4">
-              <p className="text-gray-400 text-xs mb-1">
-                Email
-              </p>
-
-              <p className="text-white font-medium">
-                {application.email}
-              </p>
-            </div>
-
-            <div className="bg-slate-800/30 rounded-xl p-4">
-              <p className="text-gray-400 text-xs mb-1">
-                Phone
-              </p>
-
-              <p className="text-white font-medium">
-                {application.phoneNumber}
-              </p>
-            </div>
-
-            <div className="bg-slate-800/30 rounded-xl p-4">
-              <p className="text-gray-400 text-xs mb-1">
-                State
-              </p>
-
-              <p className="text-white font-medium">
-                {application.state}
-              </p>
-            </div>
-
-            <div className="bg-slate-800/30 rounded-xl p-4">
-              <p className="text-gray-400 text-xs mb-1">
-                Applied
-              </p>
-
-              <p className="text-white font-medium">
-                {new Date(
-                  application.submittedAt
-                ).toLocaleDateString()}
-              </p>
-            </div>
-
+            <div className="bg-slate-800/30 rounded-xl p-4"><p className="text-gray-400 text-xs mb-1">Email</p><p className="text-white font-medium">{application.email}</p></div>
+            <div className="bg-slate-800/30 rounded-xl p-4"><p className="text-gray-400 text-xs mb-1">Phone</p><p className="text-white font-medium">{application.phoneNumber}</p></div>
+            <div className="bg-slate-800/30 rounded-xl p-4"><p className="text-gray-400 text-xs mb-1">State</p><p className="text-white font-medium">{application.state}</p></div>
+            <div className="bg-slate-800/30 rounded-xl p-4"><p className="text-gray-400 text-xs mb-1">Applied</p><p className="text-white font-medium">{new Date(application.createdAt || application.submittedAt).toLocaleDateString()}</p></div>
           </div>
         </div>
 
         {/* VEHICLE PHOTOS */}
         <div className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-2xl p-6">
-
           <div className="mb-6">
-            <h2 className="text-xl font-bold text-white">
-              Vehicle Photos
-            </h2>
-
-            <p className="text-gray-400 text-sm mt-1">
-              Photos submitted by the applicant
-            </p>
+            <h2 className="text-xl font-bold text-white">Vehicle Photos</h2>
+            <p className="text-gray-400 text-sm mt-1">Photos submitted by the applicant</p>
           </div>
-
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-
             {photos.map((item) => {
               const imageUrl = getFileUrl(item.photo);
-
               return (
-                <div
-                  key={item.name}
-                  className="bg-slate-800/40 border border-white/10 rounded-2xl overflow-hidden"
-                >
-
-                  {/* IMAGE */}
+                <div key={item.name} className="bg-slate-800/40 border border-white/10 rounded-2xl overflow-hidden">
                   <div className="aspect-video bg-slate-950 flex items-center justify-center">
-
                     {imageUrl ? (
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setSelectedImage(imageUrl)
-                        }
-                        className="w-full h-full cursor-zoom-in"
-                      >
-                        <img
-                          src={imageUrl}
-                          alt={`${item.name} vehicle photo`}
-                          className="w-full h-full object-contain hover:scale-[1.02] transition-transform"
-                        />
+                      <button type="button" onClick={() => setSelectedImage(imageUrl)} className="w-full h-full cursor-zoom-in">
+                        <img src={imageUrl} alt={`${item.name} vehicle photo`} className="w-full h-full object-contain hover:scale-[1.02] transition-transform" />
                       </button>
                     ) : (
                       <div className="text-center">
-                        <p className="text-3xl mb-2">
-                          📷
-                        </p>
-
-                        <p className="text-gray-500 text-sm">
-                          No photo uploaded
-                        </p>
+                        <p className="text-3xl mb-2">📷</p>
+                        <p className="text-gray-500 text-sm">No photo uploaded</p>
                       </div>
                     )}
-
                   </div>
-
-                  {/* PHOTO INFO */}
                   <div className="p-4 flex items-center justify-between gap-3">
-
                     <div className="min-w-0">
-                      <p className="text-white font-semibold">
-                        {item.name}
-                      </p>
-
-                      {item.photo?.fileName && (
-                        <p className="text-gray-500 text-xs mt-1 truncate">
-                          {item.photo.fileName}
-                        </p>
-                      )}
+                      <p className="text-white font-semibold">{item.name}</p>
+                      {item.photo?.fileName && <p className="text-gray-500 text-xs mt-1 truncate">{item.photo.fileName}</p>}
                     </div>
-
                     {imageUrl && (
-                      <a
-                        href={imageUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="shrink-0 px-4 py-2 bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 rounded-lg text-sm font-semibold hover:bg-cyan-500/20 transition-all"
-                      >
-                        Open ↗
-                      </a>
+                      <div className="flex gap-2">
+                        <a href={imageUrl} target="_blank" rel="noopener noreferrer" className="shrink-0 px-3 py-2 bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 rounded-lg text-xs font-semibold hover:bg-cyan-500/20 transition-all">Open ↗</a>
+                        <a href={imageUrl} download className="shrink-0 px-3 py-2 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-lg text-xs font-semibold hover:bg-emerald-500/20 transition-all">⬇ Download</a>
+                      </div>
                     )}
-
                   </div>
-
                 </div>
               );
             })}
-
           </div>
         </div>
 
         {/* DOCUMENTS */}
         <div className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-2xl p-6">
-
-          <h2 className="text-xl font-bold text-white mb-4">
-            Documents
-          </h2>
-
+          <h2 className="text-xl font-bold text-white mb-4">Documents</h2>
           <div className="space-y-3">
-
-            {application.files &&
-              Object.entries(application.files).map(
-                ([key, file]: any) => {
-
-                  const fileUrl = getFileUrl(file);
-
-                  return (
-                    <div
-                      key={key}
-                      className="flex items-center justify-between p-4 bg-slate-800/30 rounded-xl"
-                    >
-
-                      <div className="flex items-center gap-3">
-
-                        <div className="w-8 h-8 bg-emerald-500/10 rounded-lg flex items-center justify-center">
-
-                          <svg
-                            className="w-4 h-4 text-emerald-400"
-                            fill="currentColor"
-                            viewBox="0 0 20 20"
-                          >
-                            <path
-                              fillRule="evenodd"
-                              d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                              clipRule="evenodd"
-                            />
-                          </svg>
-
-                        </div>
-
-                        <span className="text-white font-medium capitalize">
-                          {key === 'ssn'
-                            ? 'SSN / EIN'
-                            : key}
-                        </span>
-
-                      </div>
-
-                      <div className="flex items-center gap-3">
-
-                        <span className="text-emerald-400 text-sm">
-                          ✓ Uploaded
-                        </span>
-
-                        {fileUrl && (
-                          <a
-                            href={fileUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="px-3 py-1.5 bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 rounded-lg text-xs font-semibold hover:bg-cyan-500/20 transition-all"
-                          >
-                            Open ↗
-                          </a>
-                        )}
-
-                      </div>
+            {application.files && Object.entries(application.files).map(([key, file]: any) => {
+              const fileUrl = getFileUrl(file);
+              return (
+                <div key={key} className="flex items-center justify-between p-4 bg-slate-800/30 rounded-xl">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 bg-emerald-500/10 rounded-lg flex items-center justify-center">
+                      <svg className="w-4 h-4 text-emerald-400" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg>
                     </div>
-                  );
-                }
-              )}
-
+                    <span className="text-white font-medium capitalize">{key === 'ssn' ? 'SSN / EIN' : key}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-emerald-400 text-sm">✓ Uploaded</span>
+                    {fileUrl && (
+                      <>
+                        <a href={fileUrl} target="_blank" rel="noopener noreferrer" className="px-3 py-1.5 bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 rounded-lg text-xs font-semibold hover:bg-cyan-500/20 transition-all">Open ↗</a>
+                        <a href={fileUrl} download className="px-3 py-1.5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-lg text-xs font-semibold hover:bg-emerald-500/20 transition-all">⬇ Download</a>
+                      </>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
 
         {/* ACTIONS */}
         <div className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-2xl p-6 space-y-3">
-
-          <h2 className="text-xl font-bold text-white mb-4">
-            Actions
-          </h2>
-
+          <h2 className="text-xl font-bold text-white mb-4">Actions</h2>
           {application.status === 'pending' && (
-            <button
-              onClick={() => setModal('hire')}
-              disabled={isProcessing}
-              className="w-full px-8 py-4 bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-bold rounded-xl hover:from-emerald-600 hover:to-teal-600 transition-all shadow-lg shadow-emerald-500/25 text-lg"
-            >
+            <button onClick={() => setModal('hire')} disabled={isProcessing} className="w-full px-8 py-4 bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-bold rounded-xl hover:from-emerald-600 hover:to-teal-600 transition-all shadow-lg shadow-emerald-500/25 text-lg">
               🤝 Hire This Driver
             </button>
           )}
-
-          <button
-            onClick={() => setModal('delete')}
-            disabled={isProcessing}
-            className="w-full px-8 py-4 bg-red-500/10 border border-red-500/20 text-red-400 font-semibold rounded-xl hover:bg-red-500/20 transition-all"
-          >
+          <button onClick={() => setModal('delete')} disabled={isProcessing} className="w-full px-8 py-4 bg-red-500/10 border border-red-500/20 text-red-400 font-semibold rounded-xl hover:bg-red-500/20 transition-all">
             🗑️ Delete Application
           </button>
-
         </div>
 
       </div>
