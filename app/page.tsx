@@ -5,24 +5,24 @@ import Link from "next/link";
 export default function Home() {
   return (
     <main
-      className="relative min-h-screen bg-cover bg-center text-white"
+      className="min-h-screen bg-cover bg-center text-white"
       style={{
         backgroundImage:
           "linear-gradient(rgba(0,0,0,0.75), rgba(0,0,0,0.75)), url('/images/hero.jpg')",
       }}
     >
-      {/* ADMIN LINK */}
-      <div className="absolute top-4 right-6 z-50">
+      {/* TOP NAV */}
+      <nav className="flex justify-end px-6 pt-6">
         <Link
           href="/admin/login"
           className="text-sm text-gray-400 hover:text-white transition-all border border-gray-600 hover:border-gray-400 px-3 py-1.5 rounded-lg"
         >
           Admin Login
         </Link>
-      </div>
+      </nav>
 
       {/* HERO */}
-      <section className="flex min-h-screen flex-col items-center justify-center px-6 text-center">
+      <section className="flex min-h-[calc(100vh-60px)] flex-col items-center justify-center px-6 text-center">
         <Image
           src="/images/logo.jpg"
           alt="Borderlanders Logo"
@@ -51,3 +51,11 @@ export default function Home() {
             <div className="rounded-xl bg-white/5 p-5">📄 Driver Records</div>
             <div className="rounded-xl bg-white/5 p-5">📷 Vehicle Photos (Front • Side • Rear)</div>
           </div>
+          <div className="mt-10 rounded-2xl bg-gradient-to-r from-blue-600 to-cyan-500 py-5 text-center text-2xl font-bold">
+            ⏱ Estimated Time: 7–10 Minutes
+          </div>
+        </div>
+      </section>
+    </main>
+  );
+}
