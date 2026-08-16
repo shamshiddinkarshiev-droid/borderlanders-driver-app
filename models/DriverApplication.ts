@@ -193,3 +193,4 @@ export const DriverApplication: Model<IDriverApplication> =
     "DriverApplication",
     DriverApplicationSchema
   );
+  export default DriverApplication;
