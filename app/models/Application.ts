@@ -1,178 +1,54 @@
-import mongoose, { Schema, Document, Model } from "mongoose";
+import mongoose from 'mongoose';
 
-export interface IUploadedFile {
-  name: string;
-  size: number;
-  url: string;
-}
-
-export interface IApplication extends Document {
-  applicationId: string;
-
+interface IDriverApplication {
   fullName: string;
   email: string;
   phoneNumber: string;
   state: string;
-  vehicleType: string;
-
+  vehicleType: 'cargo-van' | 'sprinter-van' | 'box-truck';
   files: {
-    ssn: IUploadedFile;
-    license: IUploadedFile;
-    registration: IUploadedFile;
-    insurance: IUploadedFile;
-    check: IUploadedFile;
+    ssn: { fileName: string; fileSize: number; uploadedAt: Date; };
+    license: { fileName: string; fileSize: number; uploadedAt: Date; };
+    registration: { fileName: string; fileSize: number; uploadedAt: Date; };
+    insurance: { fileName: string; fileSize: number; uploadedAt: Date; };
+    check: { fileName: string; fileSize: number; uploadedAt: Date; };
   };
-
   photos: {
-    front: IUploadedFile;
-    driverSide: IUploadedFile;
-    passengerSide: IUploadedFile;
-    rear: IUploadedFile;
+    front: { fileName: string; fileSize: number; uploadedAt: Date; };
+    driverSide: { fileName: string; fileSize: number; uploadedAt: Date; };
+    passengerSide: { fileName: string; fileSize: number; uploadedAt: Date; };
+    rear: { fileName: string; fileSize: number; uploadedAt: Date; };
   };
-
-  status: "pending" | "approved" | "rejected";
-
-  createdAt: Date;
-  updatedAt: Date;
+  status: 'pending' | 'hired' | 'rejected';
+  submittedAt: Date;
+  notes?: string;
 }
 
-const UploadedFileSchema = new Schema<IUploadedFile>(
+const driverApplicationSchema = new mongoose.Schema<IDriverApplication>(
   {
-    name: {
-      type: String,
-      required: true,
-    },
-
-    size: {
-      type: Number,
-      required: true,
-    },
-
-    url: {
-      type: String,
-      required: true,
-    },
-  },
-  {
-    _id: false,
-  }
-);
-
-const ApplicationSchema = new Schema<IApplication>(
-  {
-    applicationId: {
-      type: String,
-      required: true,
-      unique: true,
-      index: true,
-    },
-
-    fullName: {
-      type: String,
-      required: true,
-      trim: true,
-    },
-
-    email: {
-      type: String,
-      required: true,
-      trim: true,
-      lowercase: true,
-    },
-
-    phoneNumber: {
-      type: String,
-      required: true,
-      trim: true,
-    },
-
-    state: {
-      type: String,
-      required: true,
-      trim: true,
-    },
-
-    vehicleType: {
-      type: String,
-      required: true,
-      enum: [
-        "cargo-van",
-        "sprinter-van",
-        "box-truck",
-      ],
-    },
-
+    fullName: { type: String, required: true, trim: true },
+    email: { type: String, required: true, lowercase: true },
+    phoneNumber: { type: String, required: true },
+    state: { type: String, required: true, trim: true },
+    vehicleType: { type: String, enum: ['cargo-van', 'sprinter-van', 'box-truck'], required: true },
     files: {
-      ssn: {
-        type: UploadedFileSchema,
-        required: true,
-      },
-
-      license: {
-        type: UploadedFileSchema,
-        required: true,
-      },
-
-      registration: {
-        type: UploadedFileSchema,
-        required: true,
-      },
-
-      insurance: {
-        type: UploadedFileSchema,
-        required: true,
-      },
-
-      check: {
-        type: UploadedFileSchema,
-        required: true,
-      },
+      ssn: { fileName: String, fileSize: Number, uploadedAt: Date },
+      license: { fileName: String, fileSize: Number, uploadedAt: Date },
+      registration: { fileName: String, fileSize: Number, uploadedAt: Date },
+      insurance: { fileName: String, fileSize: Number, uploadedAt: Date },
+      check: { fileName: String, fileSize: Number, uploadedAt: Date },
     },
-
     photos: {
-      front: {
-        type: UploadedFileSchema,
-        required: true,
-      },
-
-      driverSide: {
-        type: UploadedFileSchema,
-        required: true,
-      },
-
-      passengerSide: {
-        type: UploadedFileSchema,
-        required: true,
-      },
-
-      rear: {
-        type: UploadedFileSchema,
-        required: true,
-      },
+      front: { fileName: String, fileSize: Number, uploadedAt: Date },
+      driverSide: { fileName: String, fileSize: Number, uploadedAt: Date },
+      passengerSide: { fileName: String, fileSize: Number, uploadedAt: Date },
+      rear: { fileName: String, fileSize: Number, uploadedAt: Date },
     },
-
-    status: {
-      type: String,
-      enum: [
-        "pending",
-        "approved",
-        "rejected",
-      ],
-      default: "pending",
-      index: true,
-    },
+    status: { type: String, enum: ['pending', 'hired', 'rejected'], default: 'pending' },
+    submittedAt: { type: Date, default: Date.now },
+    notes: String,
   },
-
-  {
-    timestamps: true,
-  }
+  { timestamps: true }
 );
 
-const Application: Model<IApplication> =
-  mongoose.models.Application ||
-  mongoose.model<IApplication>(
-    "Application",
-    ApplicationSchema
-  );
-
-export default Application;
+export default mongoose.models.DriverApplication || mongoose.model<IDriverApplication>('DriverApplication', driverApplicationSchema);
