@@ -11,18 +11,22 @@ export default function Home() {
           "linear-gradient(rgba(0,0,0,0.75), rgba(0,0,0,0.75)), url('/images/hero.jpg')",
       }}
     >
-      {/* TOP NAV */}
-      <nav className="flex justify-end px-6 pt-6">
+      {/* NAVBAR */}
+      <nav className="w-full flex items-center justify-between px-8 py-4 bg-black/30 backdrop-blur-md border-b border-white/10">
+        <div className="flex items-center gap-3">
+          <Image src="/images/logo.jpg" alt="Logo" width={40} height={40} className="rounded-lg object-contain" />
+          <span className="font-bold text-lg text-white">Borderlanders</span>
+        </div>
         <Link
           href="/admin/login"
-          className="text-sm text-gray-400 hover:text-white transition-all border border-gray-600 hover:border-gray-400 px-3 py-1.5 rounded-lg"
+          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-all text-sm"
         >
           Admin Login
         </Link>
       </nav>
 
       {/* HERO */}
-      <section className="flex min-h-[calc(100vh-60px)] flex-col items-center justify-center px-6 text-center">
+      <section className="flex min-h-[calc(100vh-65px)] flex-col items-center justify-center px-6 text-center">
         <Image
           src="/images/logo.jpg"
           alt="Borderlanders Logo"
