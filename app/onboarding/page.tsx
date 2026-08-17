@@ -1,415 +1,1411 @@
 'use client';
 
-import React, { useState, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { uploadFiles } from '@/lib/uploadthing';
+import { genUploader } from 'uploadthing/client';
+import type { OurFileRouter } from '@/app/api/uploadthing/core';
 
-type VehicleType = 'cargo-van' | 'sprinter-van' | 'box-truck' | null;
-type FileType = 'license' | 'registration' | 'insurance' | 'check' | 'ssn';
+const { uploadFiles } = genUploader<OurFileRouter>();
 
-interface FormData {
+type VehicleType =
+  | 'cargo-van'
+  | 'sprinter-van'
+  | 'box-truck'
+  | null;
+
+type FileType =
+  | 'license'
+  | 'registration'
+  | 'insurance'
+  | 'check'
+  | 'ssn';
+
+type PhotoType =
+  | 'front'
+  | 'driverSide'
+  | 'passengerSide'
+  | 'rear';
+
+type FormState = {
   fullName: string;
   email: string;
   phoneNumber: string;
   state: string;
   vehicleType: VehicleType;
-  files: {
-    license: File | null;
-    registration: File | null;
-    insurance: File | null;
-    check: File | null;
-    ssn: File | null;
-  };
-  photos: {
-    front: File | null;
-    driverSide: File | null;
-    passengerSide: File | null;
-    rear: File | null;
-  };
-  photoPreviews: {
-    front: string | null;
-    driverSide: string | null;
-    passengerSide: string | null;
-    rear: string | null;
-  };
-}
 
-const VEHICLES = [
-  { id: 'cargo-van', label: 'Cargo Van' },
-  { id: 'sprinter-van', label: 'Sprinter Van' },
-  { id: 'box-truck', label: 'Box Truck (<16ft)' },
+  files: Record<FileType, File | null>;
+
+  photos: Record<PhotoType, File | null>;
+
+  photoPreviews: Record<PhotoType, string | null>;
+};
+
+const MAX_FILE_SIZE = 5 * 1024 * 1024;
+
+const VEHICLES: {
+  id: Exclude<VehicleType, null>;
+  label: string;
+}[] = [
+  {
+    id: 'cargo-van',
+    label: 'Cargo Van',
+  },
+  {
+    id: 'sprinter-van',
+    label: 'Sprinter Van',
+  },
+  {
+    id: 'box-truck',
+    label: 'Box Truck (<16ft)',
+  },
 ];
 
-const DOCUMENT_TYPES = [
-  { id: 'ssn', label: 'SSN or EIN Document', description: 'Photo of SSN card or EIN letter' },
-  { id: 'license', label: 'Driver License', description: 'Valid government-issued ID' },
-  { id: 'registration', label: 'Vehicle Registration', description: 'Current registration documents' },
-  { id: 'insurance', label: 'Commercial Insurance', description: 'Active insurance policy' },
-  { id: 'check', label: 'Void Check', description: 'For direct deposit setup' },
-];
-
-const PHOTO_POSITIONS = [
-  { id: 'front', label: 'Front', description: 'Straight-on front view' },
-  { id: 'driverSide', label: 'Driver Side', description: 'Left side profile' },
-  { id: 'passengerSide', label: 'Passenger Side', description: 'Right side profile' },
-  { id: 'rear', label: 'Rear', description: 'Back view' },
-];
-
-interface DocumentCardProps {
-  type: FileType;
+const DOCUMENTS: {
+  id: FileType;
   label: string;
   description: string;
-  isUploaded: boolean;
-  fileName?: string;
-  inputRef: React.RefObject<HTMLInputElement | null>;
-  onUpload: (file: File | null) => void;
+}[] = [
+  {
+    id: 'license',
+    label: 'Driver License',
+    description: 'Valid government-issued ID',
+  },
+  {
+    id: 'registration',
+    label: 'Vehicle Registration',
+    description: 'Current registration document',
+  },
+  {
+    id: 'insurance',
+    label: 'Commercial Insurance',
+    description: 'Active insurance policy',
+  },
+  {
+    id: 'check',
+    label: 'Void Check',
+    description: 'For direct deposit setup',
+  },
+  {
+    id: 'ssn',
+    label: 'SSN or EIN',
+    description: 'Upload your SSN or EIN document',
+  },
+];
+
+const PHOTOS: {
+  id: PhotoType;
+  label: string;
+  description: string;
+}[] = [
+  {
+    id: 'front',
+    label: 'Front',
+    description: 'Straight-on front view',
+  },
+  {
+    id: 'driverSide',
+    label: 'Driver Side',
+    description: 'Left side profile',
+  },
+  {
+    id: 'passengerSide',
+    label: 'Passenger Side',
+    description: 'Right side profile',
+  },
+  {
+    id: 'rear',
+    label: 'Rear',
+    description: 'Back view',
+  },
+];
+
+const initialState: FormState = {
+  fullName: '',
+  email: '',
+  phoneNumber: '',
+  state: '',
+  vehicleType: null,
+
+  files: {
+    license: null,
+    registration: null,
+    insurance: null,
+    check: null,
+    ssn: null,
+  },
+
+  photos: {
+    front: null,
+    driverSide: null,
+    passengerSide: null,
+    rear: null,
+  },
+
+  photoPreviews: {
+    front: null,
+    driverSide: null,
+    passengerSide: null,
+    rear: null,
+  },
+};
+
+function formatBytes(bytes: number) {
+  if (!bytes) {
+    return '0 B';
+  }
+
+  const units = ['B', 'KB', 'MB', 'GB'];
+
+  const index = Math.min(
+    Math.floor(Math.log(bytes) / Math.log(1024)),
+    units.length - 1,
+  );
+
+  return `${(
+    bytes / Math.pow(1024, index)
+  ).toFixed(index ? 1 : 0)} ${units[index]}`;
 }
 
-function DocumentCard({ type, label, description, isUploaded, fileName, inputRef, onUpload }: DocumentCardProps) {
+function CheckIcon({
+  className = 'h-6 w-6',
+}: {
+  className?: string;
+}) {
   return (
-    <button type="button" onClick={() => inputRef.current?.click()} className={`w-full text-left transition-all p-4 rounded-lg border-2 ${isUploaded ? 'bg-emerald-500/10 border-emerald-500/30' : 'bg-slate-800/30 border-slate-700/50 hover:border-slate-600/50'}`}>
-      <div className="flex items-center justify-between">
-        <div className="flex-1 min-w-0">
-          <p className={`font-semibold ${isUploaded ? 'text-emerald-400' : 'text-white'}`}>{label}</p>
-          <p className="text-sm text-gray-400 mt-1">{description}</p>
-          {fileName && <p className="text-xs text-gray-500 mt-2 truncate">{fileName}</p>}
-        </div>
-        <div className="ml-4 flex-shrink-0">
-          {isUploaded ? (
-            <svg className="w-6 h-6 text-emerald-400" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg>
-          ) : (
-            <svg className="w-6 h-6 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
-          )}
-        </div>
-      </div>
-      <input ref={inputRef} type="file" onChange={(e) => onUpload(e.target.files?.[0] || null)} className="hidden" />
-    </button>
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.5"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="m5 12 4 4L19 6"
+      />
+    </svg>
   );
 }
 
-interface PhotoCardProps {
-  position: keyof FormData['photoPreviews'];
-  label: string;
-  description: string;
-  preview: string | null;
-  inputRef: React.RefObject<HTMLInputElement | null>;
-  onUpload: (file: File | null) => void;
-}
-
-function PhotoCard({ position, label, description, preview, inputRef, onUpload }: PhotoCardProps) {
+function UploadIcon({
+  className = 'h-6 w-6',
+}: {
+  className?: string;
+}) {
   return (
-    <button type="button" onClick={() => inputRef.current?.click()} className={`relative overflow-hidden rounded-xl border-2 transition-all aspect-square ${preview ? 'border-emerald-500/30' : 'border-slate-700/50 bg-slate-800/30 hover:border-slate-600/50'}`}>
-      {preview ? (
-        <>
-          <img src={preview} alt={label} className="w-full h-full object-cover" />
-          <div className="absolute inset-0 bg-emerald-500/20 flex flex-col items-center justify-center">
-            <svg className="w-8 h-8 text-emerald-400 mb-2" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg>
-            <p className="text-xs text-white font-semibold bg-black/40 px-2 py-1 rounded">{label}</p>
-          </div>
-        </>
-      ) : (
-        <div className="flex flex-col items-center justify-center h-full p-4">
-          <svg className="w-8 h-8 text-gray-500 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-          <p className="text-sm font-semibold text-gray-400">{label}</p>
-          <p className="text-xs text-gray-500 mt-1 text-center">{description}</p>
-        </div>
-      )}
-      <input ref={inputRef} type="file" accept="image/*" onChange={(e) => onUpload(e.target.files?.[0] || null)} className="hidden" />
-    </button>
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M12 16V4m0 0-4 4m4-4 4 4"
+      />
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M5 12v5a3 3 0 0 0 3 3h8a3 3 0 0 0 3-3v-5"
+      />
+    </svg>
   );
 }
 
 export default function OnboardingPage() {
   const router = useRouter();
-  const [currentStep, setCurrentStep] = useState<1 | 2 | 3 | 4>(1);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState('');
-  const [formData, setFormData] = useState<FormData>({
-    fullName: '', email: '', phoneNumber: '', state: '', vehicleType: null,
-    files: { license: null, registration: null, insurance: null, check: null, ssn: null },
-    photos: { front: null, driverSide: null, passengerSide: null, rear: null },
-    photoPreviews: { front: null, driverSide: null, passengerSide: null, rear: null },
-  });
 
-  const ssnRef = useRef<HTMLInputElement>(null);
-  const licenseRef = useRef<HTMLInputElement>(null);
-  const registrationRef = useRef<HTMLInputElement>(null);
-  const insuranceRef = useRef<HTMLInputElement>(null);
-  const checkRef = useRef<HTMLInputElement>(null);
-  const frontPhotoRef = useRef<HTMLInputElement>(null);
-  const driverPhotoRef = useRef<HTMLInputElement>(null);
-  const passengerPhotoRef = useRef<HTMLInputElement>(null);
-  const rearPhotoRef = useRef<HTMLInputElement>(null);
+  const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
-  };
+  const [form, setForm] =
+    useState<FormState>(initialState);
 
-  const handleFileUpload = (fileType: FileType, file: File | null) => {
-    if (!file) return;
-    setFormData(prev => ({ ...prev, files: { ...prev.files, [fileType]: file } }));
-  };
+  const [uploading, setUploading] =
+    useState(false);
 
-  const handlePhotoUpload = (photoType: keyof typeof formData.photos, file: File | null) => {
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      setFormData(prev => ({
-        ...prev,
-        photos: { ...prev.photos, [photoType]: file },
-        photoPreviews: { ...prev.photoPreviews, [photoType]: e.target?.result as string },
-      }));
+  const [uploadProgress, setUploadProgress] =
+    useState(0);
+
+  const [uploadStage, setUploadStage] =
+    useState('Preparing your application…');
+
+  const [error, setError] = useState('');
+
+  const [showSuccess, setShowSuccess] =
+    useState(false);
+
+  const [applicationId, setApplicationId] =
+    useState('');
+
+  const [transitioning, setTransitioning] =
+    useState(false);
+
+  const [direction, setDirection] = useState(1);
+
+  const licenseRef =
+    useRef<HTMLInputElement>(null);
+
+  const registrationRef =
+    useRef<HTMLInputElement>(null);
+
+  const insuranceRef =
+    useRef<HTMLInputElement>(null);
+
+  const checkRef =
+    useRef<HTMLInputElement>(null);
+
+  const ssnRef =
+    useRef<HTMLInputElement>(null);
+
+  const frontRef =
+    useRef<HTMLInputElement>(null);
+
+  const driverSideRef =
+    useRef<HTMLInputElement>(null);
+
+  const passengerSideRef =
+    useRef<HTMLInputElement>(null);
+
+  const rearRef =
+    useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    return () => {
+      Object.values(form.photoPreviews).forEach(
+        (url) => {
+          if (url) {
+            URL.revokeObjectURL(url);
+          }
+        },
+      );
     };
-    reader.readAsDataURL(file);
+  }, [form.photoPreviews]);
+
+  const updateField = (
+    name:
+      | 'fullName'
+      | 'email'
+      | 'phoneNumber'
+      | 'state',
+    value: string,
+  ) => {
+    setForm((previous) => ({
+      ...previous,
+      [name]: value,
+    }));
   };
 
-  const isStep1Valid = () => formData.fullName.trim() !== '' && formData.email.trim() !== '' && formData.phoneNumber.trim() !== '' && formData.state.trim() !== '' && formData.vehicleType !== null;
-  const isStep2Valid = () => formData.files.ssn !== null && formData.files.license !== null && formData.files.registration !== null && formData.files.insurance !== null && formData.files.check !== null;
-  const isStep3Valid = () => formData.photos.front !== null && formData.photos.driverSide !== null && formData.photos.passengerSide !== null && formData.photos.rear !== null;
+  const setDocument = (
+    type: FileType,
+    file: File | null,
+  ) => {
+    if (!file) {
+      return;
+    }
+
+    if (file.size > MAX_FILE_SIZE) {
+      setError(
+        `${file.name} is larger than 5 MB. Please choose a smaller file.`,
+      );
+      return;
+    }
+
+    const allowedTypes = [
+      'application/pdf',
+      'image/jpeg',
+      'image/png',
+      'image/webp',
+    ];
+
+    if (!allowedTypes.includes(file.type)) {
+      setError(
+        `${file.name} is not supported. Use PDF, JPG, PNG, or WebP.`,
+      );
+      return;
+    }
+
+    setError('');
+
+    setForm((previous) => ({
+      ...previous,
+      files: {
+        ...previous.files,
+        [type]: file,
+      },
+    }));
+  };
+
+  const setPhoto = (
+    type: PhotoType,
+    file: File | null,
+  ) => {
+    if (!file) {
+      return;
+    }
+
+    if (!file.type.startsWith('image/')) {
+      setError(
+        'Vehicle photos must be image files.',
+      );
+      return;
+    }
+
+    if (file.size > MAX_FILE_SIZE) {
+      setError(
+        `${file.name} is larger than 5 MB. Please choose a smaller photo.`,
+      );
+      return;
+    }
+
+    setError('');
+
+    const oldPreview =
+      form.photoPreviews[type];
+
+    if (oldPreview) {
+      URL.revokeObjectURL(oldPreview);
+    }
+
+    const preview =
+      URL.createObjectURL(file);
+
+    setForm((previous) => ({
+      ...previous,
+
+      photos: {
+        ...previous.photos,
+        [type]: file,
+      },
+
+      photoPreviews: {
+        ...previous.photoPreviews,
+        [type]: preview,
+      },
+    }));
+  };
+
+  const validStep1 =
+    form.fullName.trim() !== '' &&
+    form.email.trim() !== '' &&
+    form.phoneNumber.trim() !== '' &&
+    form.state.trim() !== '' &&
+    form.vehicleType !== null;
+
+  const validStep2 =
+    Object.values(form.files).every(Boolean);
+
+  const validStep3 =
+    Object.values(form.photos).every(Boolean);
+
+  const moveToStep = (
+    nextStep: 1 | 2 | 3 | 4,
+  ) => {
+    if (
+      nextStep === step ||
+      transitioning ||
+      uploading
+    ) {
+      return;
+    }
+
+    setDirection(
+      nextStep > step ? 1 : -1,
+    );
+
+    setTransitioning(true);
+
+    window.setTimeout(() => {
+      setStep(nextStep);
+      setTransitioning(false);
+    }, 220);
+  };
 
   const handleContinue = () => {
-    if (currentStep === 1 && isStep1Valid()) setCurrentStep(2);
-    else if (currentStep === 2 && isStep2Valid()) setCurrentStep(3);
-    else if (currentStep === 3 && isStep3Valid()) setCurrentStep(4);
-  };
+    setError('');
 
-  const handleBack = () => {
-    if (currentStep > 1) setCurrentStep(prev => (prev - 1) as 1 | 2 | 3 | 4);
-  };
+    if (step === 1) {
+      if (!validStep1) {
+        setError(
+          'Please complete all required fields before continuing.',
+        );
+        return;
+      }
 
-  const uploadSingleFile = async (file: File, endpoint: 'documentUploader' | 'photoUploader'): Promise<string> => {
-    const res = await uploadFiles(endpoint, { files: [file] });
-    console.log('Upload result:', JSON.stringify(res));
-    return res?.[0]?.url || res?.[0]?.ufsUrl || '';
-  };
+      moveToStep(2);
+      return;
+    }
 
-  const handleSubmit = async () => {
-    setIsSubmitting(true);
-    try {
-      setUploadProgress('Uploading documents...');
-      const [ssnUrl, licenseUrl, regUrl, insUrl, checkUrl] = await Promise.all([
-        uploadSingleFile(formData.files.ssn!, 'documentUploader'),
-        uploadSingleFile(formData.files.license!, 'documentUploader'),
-        uploadSingleFile(formData.files.registration!, 'documentUploader'),
-        uploadSingleFile(formData.files.insurance!, 'documentUploader'),
-        uploadSingleFile(formData.files.check!, 'documentUploader'),
-      ]);
+    if (step === 2) {
+      if (!validStep2) {
+        setError(
+          'Please upload all five required documents.',
+        );
+        return;
+      }
 
-      setUploadProgress('Uploading photos...');
-      const [frontUrl, driverUrl, passengerUrl, rearUrl] = await Promise.all([
-        uploadSingleFile(formData.photos.front!, 'photoUploader'),
-        uploadSingleFile(formData.photos.driverSide!, 'photoUploader'),
-        uploadSingleFile(formData.photos.passengerSide!, 'photoUploader'),
-        uploadSingleFile(formData.photos.rear!, 'photoUploader'),
-      ]);
+      moveToStep(3);
+      return;
+    }
 
-      const urls = {
-        ssn: ssnUrl, license: licenseUrl, registration: regUrl,
-        insurance: insUrl, check: checkUrl, front: frontUrl,
-        driverSide: driverUrl, passengerSide: passengerUrl, rear: rearUrl,
-      };
+    if (step === 3) {
+      if (!validStep3) {
+        setError(
+          'Please upload all four vehicle photos.',
+        );
+        return;
+      }
 
-      console.log('ALL URLS:', urls);
-
-      const missing = Object.entries(urls).filter(([, v]) => !v).map(([k]) => k);
-      if (missing.length > 0) throw new Error(`Upload failed for: ${missing.join(', ')}`);
-
-      setUploadProgress('Submitting...');
-      const response = await fetch('/api/submit', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          fullName: formData.fullName, email: formData.email,
-          phoneNumber: formData.phoneNumber, state: formData.state,
-          vehicleType: formData.vehicleType,
-          files: {
-            ssn: { name: formData.files.ssn!.name, size: formData.files.ssn!.size, url: urls.ssn },
-            license: { name: formData.files.license!.name, size: formData.files.license!.size, url: urls.license },
-            registration: { name: formData.files.registration!.name, size: formData.files.registration!.size, url: urls.registration },
-            insurance: { name: formData.files.insurance!.name, size: formData.files.insurance!.size, url: urls.insurance },
-            check: { name: formData.files.check!.name, size: formData.files.check!.size, url: urls.check },
-          },
-          photos: {
-            front: { name: formData.photos.front!.name, size: formData.photos.front!.size, url: urls.front },
-            driverSide: { name: formData.photos.driverSide!.name, size: formData.photos.driverSide!.size, url: urls.driverSide },
-            passengerSide: { name: formData.photos.passengerSide!.name, size: formData.photos.passengerSide!.size, url: urls.passengerSide },
-            rear: { name: formData.photos.rear!.name, size: formData.photos.rear!.size, url: urls.rear },
-          },
-        }),
-      });
-
-      const data = await response.json();
-      if (!response.ok || !data.success) throw new Error(data.message || 'Failed to submit');
-      router.push(`/onboarding/success?applicationId=${data.applicationId}`);
-    } catch (error: any) {
-      console.error('SUBMIT ERROR:', error);
-      alert(error?.message || 'Failed to submit. Please try again.');
-    } finally {
-      setIsSubmitting(false);
-      setUploadProgress('');
+      moveToStep(4);
     }
   };
 
-  const progressPercentage = ((currentStep - 1) / 3) * 100;
+  const uploadDocument = async (
+    file: File,
+    label: string,
+    startingProgress: number,
+    progressRange: number,
+  ) => {
+    setUploadStage(
+      `Uploading ${label}…`,
+    );
+
+    const result =
+      await uploadFiles(
+        'documentUploader',
+        {
+          files: [file],
+
+          onUploadProgress: (
+            progress,
+          ) => {
+            const value =
+              startingProgress +
+              (progress / 100) *
+                progressRange;
+
+            setUploadProgress(
+              Math.min(99, value),
+            );
+          },
+        },
+      );
+
+    return result[0];
+  };
+
+  const submitApplication = async () => {
+    if (
+      !validStep1 ||
+      !validStep2 ||
+      !validStep3 ||
+      !form.vehicleType
+    ) {
+      setError(
+        'Please complete all required information before submitting.',
+      );
+      return;
+    }
+
+    setUploading(true);
+    setError('');
+    setUploadProgress(1);
+    setUploadStage(
+      'Preparing your application…',
+    );
+
+    try {
+      const documentEntries =
+        Object.entries(
+          form.files,
+        ) as [FileType, File][];
+
+      const documentUrls: Record<
+        string,
+        string
+      > = {};
+
+      for (
+        let index = 0;
+        index < documentEntries.length;
+        index++
+      ) {
+        const [type, file] =
+          documentEntries[index];
+
+        const document =
+          DOCUMENTS.find(
+            (item) => item.id === type,
+          );
+
+        const uploaded =
+          await uploadDocument(
+            file,
+            document?.label ?? type,
+            5 + index * 13,
+            12,
+          );
+
+        if (!uploaded?.url) {
+          throw new Error(
+            `Upload failed for ${document?.label ?? type}.`,
+          );
+        }
+
+        documentUrls[type] =
+          uploaded.url;
+      }
+
+      const photoEntries =
+        Object.entries(
+          form.photos,
+        ) as [PhotoType, File][];
+
+      const photoUrls: Record<
+        string,
+        string
+      > = {};
+
+      for (
+        let index = 0;
+        index < photoEntries.length;
+        index++
+      ) {
+        const [type, file] =
+          photoEntries[index];
+
+        const photo =
+          PHOTOS.find(
+            (item) => item.id === type,
+          );
+
+        setUploadStage(
+          `Uploading ${photo?.label ?? type} photo…`,
+        );
+
+        const uploaded =
+          await uploadFiles(
+            'photoUploader',
+            {
+              files: [file],
+
+              onUploadProgress: (
+                progress,
+              ) => {
+                const value =
+                  70 +
+                  index * 7 +
+                  (progress / 100) * 7;
+
+                setUploadProgress(
+                  Math.min(98, value),
+                );
+              },
+            },
+          );
+
+        if (!uploaded?.[0]?.url) {
+          throw new Error(
+            `Photo upload failed for ${photo?.label ?? type}.`,
+          );
+        }
+
+        photoUrls[type] =
+          uploaded[0].url;
+      }
+
+      setUploadStage(
+        'Saving your application…',
+      );
+
+      setUploadProgress(98);
+
+      const response =
+        await fetch('/api/submit', {
+          method: 'POST',
+
+          headers: {
+            'Content-Type':
+              'application/json',
+          },
+
+          body: JSON.stringify({
+            fullName:
+              form.fullName.trim(),
+
+            email:
+              form.email.trim(),
+
+            phoneNumber:
+              form.phoneNumber.trim(),
+
+            state:
+              form.state.trim(),
+
+            vehicleType:
+              form.vehicleType,
+
+            documents:
+              documentUrls,
+
+            photos:
+              photoUrls,
+          }),
+        });
+
+      const data =
+        await response
+          .json()
+          .catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(
+          data?.error ||
+            data?.message ||
+            'Application submission failed.',
+        );
+      }
+
+      setUploadProgress(100);
+
+      setUploadStage(
+        'Application submitted successfully.',
+      );
+
+      const id =
+        data?.applicationId ||
+        data?.id ||
+        data?.application?.id ||
+        '';
+
+      setApplicationId(
+        String(id),
+      );
+
+      setShowSuccess(true);
+    } catch (submissionError) {
+      console.error(
+        'Application submission error:',
+        submissionError,
+      );
+
+      setError(
+        submissionError instanceof Error
+          ? submissionError.message
+          : 'Something went wrong while submitting your application.',
+      );
+
+      setUploadStage(
+        'Submission paused — your information is still here.',
+      );
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  if (showSuccess) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-slate-950 p-6 text-white">
+        <div className="w-full max-w-2xl rounded-3xl border border-white/10 bg-slate-900/80 p-8 text-center shadow-2xl backdrop-blur-xl sm:p-12">
+          <div className="mx-auto mb-7 flex h-20 w-20 items-center justify-center rounded-full bg-emerald-500/15 text-emerald-400 ring-1 ring-emerald-400/30">
+            <CheckIcon className="h-10 w-10" />
+          </div>
+
+          <h1 className="text-4xl font-black">
+            Application Submitted!
+          </h1>
+
+          <p className="mt-4 text-lg text-slate-400">
+            Your application has been received.
+            We will review it and get back to you soon!
+          </p>
+
+          {applicationId && (
+            <div className="mt-8 rounded-2xl bg-slate-800/70 p-6">
+              <p className="text-sm text-slate-400">
+                Application ID
+              </p>
+
+              <p className="mt-2 break-all font-mono text-xl font-bold text-cyan-400">
+                {applicationId}
+              </p>
+            </div>
+          )}
+
+          <button
+            type="button"
+            onClick={() =>
+              router.push('/')
+            }
+            className="mt-8 w-full rounded-xl bg-gradient-to-r from-cyan-500 to-blue-500 px-6 py-4 text-lg font-bold shadow-lg shadow-cyan-500/20 transition hover:scale-[1.01]"
+          >
+            Back to Home
+          </button>
+        </div>
+      </main>
+    );
+  }
+
+  const progress =
+    step === 1
+      ? 25
+      : step === 2
+        ? 50
+        : step === 3
+          ? 75
+          : 100;
+
+  const stepLabels = [
+    'Personal',
+    'Documents',
+    'Photos',
+    'Review',
+  ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 relative overflow-hidden">
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-cyan-500/5 rounded-full blur-3xl" />
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-blue-500/5 rounded-full blur-3xl" />
+    <main className="min-h-screen overflow-hidden bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-white">
+      <div className="pointer-events-none fixed inset-0">
+        <div className="absolute -left-40 -top-40 h-96 w-96 rounded-full bg-cyan-500/10 blur-3xl" />
+        <div className="absolute -bottom-40 -right-40 h-96 w-96 rounded-full bg-blue-500/10 blur-3xl" />
       </div>
 
-      <div className="relative z-10 min-h-screen flex flex-col">
-        <div className="pt-6 pb-8 px-4 sm:px-6 lg:px-8">
-          <div className="max-w-2xl mx-auto">
-            <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">Borderlanders Onboarding</h1>
-            <p className="text-gray-400 text-sm sm:text-base">Complete your profile to start working with us</p>
+      <div className="relative z-10 mx-auto flex min-h-screen max-w-4xl flex-col px-4 py-8 sm:px-6">
+        <header className="mb-8 text-center">
+          <div className="mb-3 inline-flex items-center gap-2 text-xs font-black tracking-[0.35em] text-cyan-400">
+            BORDERLANDERS
+          </div>
+
+          <h1 className="text-3xl font-black sm:text-4xl">
+            Driver Onboarding
+          </h1>
+
+          <p className="mt-2 text-slate-400">
+            Complete your profile to start working with us
+          </p>
+        </header>
+
+        <div className="mb-8">
+          <div className="mb-3 flex items-center justify-between">
+            {stepLabels.map(
+              (label, index) => {
+                const number = index + 1;
+
+                return (
+                  <button
+                    key={label}
+                    type="button"
+                    disabled={
+                      uploading ||
+                      transitioning ||
+                      number > step
+                    }
+                    onClick={() => {
+                      if (
+                        number <= step
+                      ) {
+                        moveToStep(
+                          number as
+                            | 1
+                            | 2
+                            | 3
+                            | 4,
+                        );
+                      }
+                    }}
+                    className="flex flex-col items-center gap-2 disabled:cursor-default"
+                  >
+                    <span
+                      className={`flex h-11 w-11 items-center justify-center rounded-full font-bold transition-all duration-500 ${
+                        number <= step
+                          ? 'bg-gradient-to-r from-cyan-500 to-blue-500 shadow-lg shadow-cyan-500/30'
+                          : 'border border-white/10 bg-white/5 text-slate-500'
+                      }`}
+                    >
+                      {number < step ? (
+                        <CheckIcon className="h-5 w-5" />
+                      ) : (
+                        number
+                      )}
+                    </span>
+
+                    <span className="text-xs text-slate-400">
+                      {label}
+                    </span>
+                  </button>
+                );
+              },
+            )}
+          </div>
+
+          <div className="h-1.5 overflow-hidden rounded-full bg-white/5">
+            <div
+              className="h-full rounded-full bg-gradient-to-r from-cyan-400 to-blue-500 transition-all duration-700"
+              style={{
+                width: `${progress}%`,
+              }}
+            />
           </div>
         </div>
 
-        <div className="px-4 sm:px-6 lg:px-8 mb-8">
-          <div className="max-w-2xl mx-auto">
-            <div className="flex items-center justify-between mb-3">
-              {[1, 2, 3, 4].map((step) => (
-                <div key={step} className="flex flex-col items-center flex-1">
-                  <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center font-semibold text-sm sm:text-base transition-all duration-300 ${step <= currentStep ? 'bg-gradient-to-r from-cyan-500 to-blue-500 text-white shadow-lg shadow-cyan-500/50' : 'bg-slate-800/50 text-gray-400 border border-slate-700/50'}`}>{step}</div>
-                  <p className="text-xs sm:text-sm text-gray-400 mt-2 text-center">
-                    {step === 1 && 'Personal'}{step === 2 && 'Documents'}{step === 3 && 'Photos'}{step === 4 && 'Review'}
-                  </p>
-                </div>
-              ))}
+        {uploading && (
+          <div className="mb-6 overflow-hidden rounded-2xl border border-cyan-400/20 bg-cyan-400/5 p-5">
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <p className="font-bold">
+                  {uploadStage}
+                </p>
+
+                <p className="mt-1 text-sm text-slate-400">
+                  Please keep this window open while your application is being submitted.
+                </p>
+              </div>
+
+              <span className="font-black text-cyan-400">
+                {Math.round(
+                  uploadProgress,
+                )}
+                %
+              </span>
             </div>
-            <div className="h-1 bg-slate-800/50 rounded-full overflow-hidden">
-              <div className="h-full bg-gradient-to-r from-cyan-500 to-blue-500 transition-all duration-500 ease-out" style={{ width: `${progressPercentage}%` }} />
+
+            <div className="mt-4 h-2 overflow-hidden rounded-full bg-slate-800">
+              <div
+                className="h-full rounded-full bg-gradient-to-r from-cyan-400 via-blue-500 to-violet-500 transition-all duration-300"
+                style={{
+                  width: `${uploadProgress}%`,
+                }}
+              />
             </div>
           </div>
-        </div>
+        )}
 
-        <div className="flex-1 px-4 sm:px-6 lg:px-8 pb-12">
-          <div className="max-w-2xl mx-auto">
-            {currentStep === 1 && (
-              <div className="animate-fadeIn">
-                <div className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-2xl p-6 sm:p-8 shadow-2xl">
-                  <h2 className="text-2xl sm:text-3xl font-bold text-white mb-8">Personal Information</h2>
-                  <div className="space-y-6">
-                    {[
-                      { label: 'Full Name', name: 'fullName', type: 'text', placeholder: 'John Doe' },
-                      { label: 'Email Address', name: 'email', type: 'email', placeholder: 'john@example.com' },
-                      { label: 'Phone Number', name: 'phoneNumber', type: 'tel', placeholder: '(555) 123-4567' },
-                      { label: 'State', name: 'state', type: 'text', placeholder: 'California' },
-                    ].map(field => (
-                      <div key={field.name}>
-                        <label className="block text-sm font-semibold text-gray-300 mb-2">{field.label}</label>
-                        <input type={field.type} name={field.name} value={(formData as any)[field.name]} onChange={handleInputChange} className="w-full px-4 py-3 bg-slate-800/40 border border-slate-700/50 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-transparent transition-all" placeholder={field.placeholder} />
-                      </div>
-                    ))}
-                    <div>
-                      <label className="block text-sm font-semibold text-gray-300 mb-4">Vehicle Type</label>
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                        {VEHICLES.map(vehicle => (
-                          <button key={vehicle.id} type="button" onClick={() => setFormData(prev => ({ ...prev, vehicleType: vehicle.id as VehicleType }))} className={`p-4 rounded-lg border-2 transition-all font-medium text-center ${formData.vehicleType === vehicle.id ? 'bg-gradient-to-r from-cyan-500/20 to-blue-500/20 border-cyan-500/50 text-cyan-300 shadow-lg shadow-cyan-500/25' : 'bg-slate-800/30 border-slate-700/50 text-gray-400 hover:border-slate-600/50'}`}>
-                            {vehicle.label}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
+        {error && (
+          <div className="mb-6 rounded-xl border border-red-400/20 bg-red-500/10 p-4 text-sm text-red-200">
+            {error}
+          </div>
+        )}
 
-            {currentStep === 2 && (
-              <div className="animate-fadeIn">
-                <div className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-2xl p-6 sm:p-8 shadow-2xl">
-                  <h2 className="text-2xl sm:text-3xl font-bold text-white mb-8">Upload Documents</h2>
-                  <p className="text-gray-400 mb-8">All five documents are required to proceed</p>
-                  <div className="space-y-4">
-                    <DocumentCard type="ssn" label={DOCUMENT_TYPES[0].label} description={DOCUMENT_TYPES[0].description} isUploaded={!!formData.files.ssn} fileName={formData.files.ssn?.name} inputRef={ssnRef} onUpload={(f) => handleFileUpload('ssn', f)} />
-                    <DocumentCard type="license" label={DOCUMENT_TYPES[1].label} description={DOCUMENT_TYPES[1].description} isUploaded={!!formData.files.license} fileName={formData.files.license?.name} inputRef={licenseRef} onUpload={(f) => handleFileUpload('license', f)} />
-                    <DocumentCard type="registration" label={DOCUMENT_TYPES[2].label} description={DOCUMENT_TYPES[2].description} isUploaded={!!formData.files.registration} fileName={formData.files.registration?.name} inputRef={registrationRef} onUpload={(f) => handleFileUpload('registration', f)} />
-                    <DocumentCard type="insurance" label={DOCUMENT_TYPES[3].label} description={DOCUMENT_TYPES[3].description} isUploaded={!!formData.files.insurance} fileName={formData.files.insurance?.name} inputRef={insuranceRef} onUpload={(f) => handleFileUpload('insurance', f)} />
-                    <DocumentCard type="check" label={DOCUMENT_TYPES[4].label} description={DOCUMENT_TYPES[4].description} isUploaded={!!formData.files.check} fileName={formData.files.check?.name} inputRef={checkRef} onUpload={(f) => handleFileUpload('check', f)} />
-                  </div>
-                </div>
-              </div>
-            )}
+        <section
+          className={`flex-1 transition-all duration-220 ${
+            transitioning
+              ? direction > 0
+                ? 'translate-x-8 opacity-0'
+                : '-translate-x-8 opacity-0'
+              : 'translate-x-0 opacity-100'
+          }`}
+        >
+          {step === 1 && (
+            <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-6 shadow-2xl backdrop-blur-xl sm:p-8">
+              <h2 className="mb-7 text-2xl font-black">
+                Personal Information
+              </h2>
 
-            {currentStep === 3 && (
-              <div className="animate-fadeIn">
-                <div className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-2xl p-6 sm:p-8 shadow-2xl">
-                  <h2 className="text-2xl sm:text-3xl font-bold text-white mb-8">Vehicle Photos</h2>
-                  <p className="text-gray-400 mb-8">Upload four photos of your vehicle</p>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                    <PhotoCard position="front" label={PHOTO_POSITIONS[0].label} description={PHOTO_POSITIONS[0].description} preview={formData.photoPreviews.front} inputRef={frontPhotoRef} onUpload={(f) => handlePhotoUpload('front', f)} />
-                    <PhotoCard position="driverSide" label={PHOTO_POSITIONS[1].label} description={PHOTO_POSITIONS[1].description} preview={formData.photoPreviews.driverSide} inputRef={driverPhotoRef} onUpload={(f) => handlePhotoUpload('driverSide', f)} />
-                    <PhotoCard position="passengerSide" label={PHOTO_POSITIONS[2].label} description={PHOTO_POSITIONS[2].description} preview={formData.photoPreviews.passengerSide} inputRef={passengerPhotoRef} onUpload={(f) => handlePhotoUpload('passengerSide', f)} />
-                    <PhotoCard position="rear" label={PHOTO_POSITIONS[3].label} description={PHOTO_POSITIONS[3].description} preview={formData.photoPreviews.rear} inputRef={rearPhotoRef} onUpload={(f) => handlePhotoUpload('rear', f)} />
-                  </div>
-                </div>
-              </div>
-            )}
+              <div className="space-y-5">
+                <div>
+                  <label className="mb-2 block text-sm font-semibold text-slate-300">
+                    Full Name
+                  </label>
 
-            {currentStep === 4 && (
-              <div className="animate-fadeIn space-y-6">
-                <div className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-2xl p-6 sm:p-8 shadow-2xl">
-                  <h3 className="text-xl font-bold text-white mb-6">Personal Information</h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                    <div><p className="text-sm text-gray-400 mb-1">Full Name</p><p className="text-white font-medium">{formData.fullName}</p></div>
-                    <div><p className="text-sm text-gray-400 mb-1">Email</p><p className="text-white font-medium break-all">{formData.email}</p></div>
-                    <div><p className="text-sm text-gray-400 mb-1">Phone</p><p className="text-white font-medium">{formData.phoneNumber}</p></div>
-                    <div><p className="text-sm text-gray-400 mb-1">State</p><p className="text-white font-medium">{formData.state}</p></div>
-                    <div><p className="text-sm text-gray-400 mb-1">Vehicle</p><p className="text-white font-medium">{VEHICLES.find(v => v.id === formData.vehicleType)?.label}</p></div>
-                  </div>
-                </div>
-                <div className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-2xl p-6 sm:p-8 shadow-2xl">
-                  <h3 className="text-xl font-bold text-white mb-6">Documents</h3>
-                  <div className="space-y-3">
-                    {(['ssn', 'license', 'registration', 'insurance', 'check'] as const).map((doc, idx) => (
-                      <div key={doc} className="flex items-center justify-between p-4 bg-slate-800/30 rounded-lg">
-                        <span className="text-gray-300">{DOCUMENT_TYPES[idx].label}</span>
-                        {formData.files[doc] && <div className="flex items-center gap-2"><span className="text-sm text-gray-400 truncate max-w-[200px]">{formData.files[doc]?.name}</span><svg className="w-5 h-5 text-emerald-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg></div>}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-                <div className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-2xl p-6 sm:p-8 shadow-2xl">
-                  <h3 className="text-xl font-bold text-white mb-6">Vehicle Photos</h3>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                    {(['front', 'driverSide', 'passengerSide', 'rear'] as const).map(pos => (
-                      formData.photoPreviews[pos] && (
-                        <div key={pos} className="relative">
-                          <img src={formData.photoPreviews[pos]!} alt={pos} className="w-full h-32 object-cover rounded-lg" />
-                          <div className="absolute inset-0 bg-emerald-500/20 rounded-lg flex items-center justify-center">
-                            <svg className="w-6 h-6 text-emerald-400" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg>
-                          </div>
-                        </div>
+                  <input
+                    type="text"
+                    value={form.fullName}
+                    onChange={(event) =>
+                      updateField(
+                        'fullName',
+                        event.target.value,
                       )
-                    ))}
+                    }
+                    placeholder="John Doe"
+                    className="w-full rounded-xl border border-white/10 bg-slate-900/60 px-4 py-3.5 text-white outline-none transition focus:border-cyan-400/50 focus:ring-2 focus:ring-cyan-400/10"
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-sm font-semibold text-slate-300">
+                    Email Address
+                  </label>
+
+                  <input
+                    type="email"
+                    value={form.email}
+                    onChange={(event) =>
+                      updateField(
+                        'email',
+                        event.target.value,
+                      )
+                    }
+                    placeholder="john@example.com"
+                    className="w-full rounded-xl border border-white/10 bg-slate-900/60 px-4 py-3.5 text-white outline-none transition focus:border-cyan-400/50 focus:ring-2 focus:ring-cyan-400/10"
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-sm font-semibold text-slate-300">
+                    Phone Number
+                  </label>
+
+                  <input
+                    type="tel"
+                    value={form.phoneNumber}
+                    onChange={(event) =>
+                      updateField(
+                        'phoneNumber',
+                        event.target.value,
+                      )
+                    }
+                    placeholder="(555) 123-4567"
+                    className="w-full rounded-xl border border-white/10 bg-slate-900/60 px-4 py-3.5 text-white outline-none transition focus:border-cyan-400/50 focus:ring-2 focus:ring-cyan-400/10"
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-sm font-semibold text-slate-300">
+                    State
+                  </label>
+
+                  <input
+                    type="text"
+                    value={form.state}
+                    onChange={(event) =>
+                      updateField(
+                        'state',
+                        event.target.value,
+                      )
+                    }
+                    placeholder="California"
+                    className="w-full rounded-xl border border-white/10 bg-slate-900/60 px-4 py-3.5 text-white outline-none transition focus:border-cyan-400/50 focus:ring-2 focus:ring-cyan-400/10"
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-3 block text-sm font-semibold text-slate-300">
+                    Vehicle Type
+                  </label>
+
+                  <div className="grid gap-3 sm:grid-cols-3">
+                    {VEHICLES.map(
+                      (vehicle) => (
+                        <button
+                          key={vehicle.id}
+                          type="button"
+                          onClick={() =>
+                            setForm(
+                              (previous) => ({
+                                ...previous,
+                                vehicleType:
+                                  vehicle.id,
+                              }),
+                            )
+                          }
+                          className={`rounded-xl border p-4 text-sm font-bold transition-all ${
+                            form.vehicleType ===
+                            vehicle.id
+                              ? 'border-cyan-400/50 bg-cyan-400/10 text-cyan-300 shadow-lg shadow-cyan-500/10'
+                              : 'border-white/10 bg-white/[0.03] text-slate-400 hover:border-white/20'
+                          }`}
+                        >
+                          {vehicle.label}
+                        </button>
+                      ),
+                    )}
                   </div>
                 </div>
               </div>
-            )}
-          </div>
-        </div>
+            </div>
+          )}
 
-        <div className="px-4 sm:px-6 lg:px-8 pb-8 border-t border-white/5 bg-gradient-to-r from-slate-950/80 to-slate-900/80 backdrop-blur">
-          <div className="max-w-2xl mx-auto flex items-center justify-between gap-4 pt-6">
-            <button type="button" onClick={handleBack} disabled={currentStep === 1 || isSubmitting} className="px-6 py-3 text-white font-semibold rounded-lg bg-slate-800/50 border border-slate-700/50 hover:bg-slate-700/50 disabled:opacity-50 disabled:cursor-not-allowed transition-all">Back</button>
-            {currentStep < 4 ? (
-              <button type="button" onClick={handleContinue} disabled={isSubmitting || (currentStep === 1 && !isStep1Valid()) || (currentStep === 2 && !isStep2Valid()) || (currentStep === 3 && !isStep3Valid())} className="flex-1 px-8 py-3 bg-gradient-to-r from-cyan-500 to-blue-500 text-white font-semibold rounded-lg hover:from-cyan-600 hover:to-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg shadow-cyan-500/25">Continue</button>
-            ) : (
-              <button type="button" onClick={handleSubmit} disabled={isSubmitting} className="flex-1 px-8 py-3 bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-semibold rounded-lg hover:from-emerald-600 hover:to-teal-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg shadow-emerald-500/25">
-                {isSubmitting ? uploadProgress || 'Submitting...' : 'Submit Application'}
-              </button>
-            )}
-          </div>
-        </div>
+          {step === 2 && (
+            <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-6 shadow-2xl backdrop-blur-xl sm:p-8">
+              <h2 className="text-2xl font-black">
+                Upload Documents
+              </h2>
+
+              <p className="mb-7 mt-2 text-slate-400">
+                PDF or image files up to 5 MB each.
+              </p>
+
+              <div className="space-y-3">
+                {DOCUMENTS.map(
+                  (document) => {
+                    const file =
+                      form.files[
+                        document.id
+                      ];
+
+                    const inputRef =
+                      document.id ===
+                      'license'
+                        ? licenseRef
+                        : document.id ===
+                            'registration'
+                          ? registrationRef
+                          : document.id ===
+                              'insurance'
+                            ? insuranceRef
+                            : document.id ===
+                                'check'
+                              ? checkRef
+                              : ssnRef;
+
+                    return (
+                      <div
+                        key={document.id}
+                        className={`relative flex w-full items-center justify-between rounded-2xl border p-5 text-left transition-all ${
+                          file
+                            ? 'border-emerald-400/20 bg-emerald-400/5'
+                            : 'border-white/10 bg-white/[0.03] hover:border-cyan-400/30'
+                        }`}
+                      >
+                        <button
+                          type="button"
+                          onClick={() =>
+                            inputRef.current?.click()
+                          }
+                          className="flex flex-1 items-center justify-between text-left"
+                        >
+                          <div>
+                            <p
+                              className={`font-bold ${
+                                file
+                                  ? 'text-emerald-300'
+                                  : 'text-white'
+                              }`}
+                            >
+                              {document.label}
+                            </p>
+
+                            <p className="mt-1 text-sm text-slate-500">
+                              {file
+                                ? `${file.name} · ${formatBytes(file.size)}`
+                                : document.description}
+                            </p>
+
+                            {!file && (
+                              <p className="mt-2 text-xs text-slate-600">
+                                Maximum file size:
+                                5 MB
+                              </p>
+                            )}
+                          </div>
+
+                          {file ? (
+                            <CheckIcon className="ml-4 h-6 w-6 shrink-0 text-emerald-400" />
+                          ) : (
+                            <UploadIcon className="ml-4 h-6 w-6 shrink-0 text-slate-600" />
+                          )}
+                        </button>
+
+                        <input
+                          ref={inputRef}
+                          hidden
+                          type="file"
+                          accept=".pdf,image/jpeg,image/png,image/webp"
+                          onChange={(event) => {
+                            setDocument(
+                              document.id,
+                              event.target.files?.[0] ??
+                                null,
+                            );
+
+                            event.currentTarget.value =
+                              '';
+                          }}
+                        />
+                      </div>
+                    );
+                  },
+                )}
+              </div>
+
+              <div className="mt-6 rounded-xl border border-cyan-400/10 bg-cyan-400/5 p-4">
+                <p className="text-sm text-slate-400">
+                  <span className="font-bold text-cyan-300">
+                    SSN or EIN:
+                  </span>{' '}
+                  Upload either your Social Security
+                  Number document or your EIN
+                  document.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {step === 3 && (
+            <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-6 shadow-2xl backdrop-blur-xl sm:p-8">
+              <h2 className="text-2xl font-black">
+                Vehicle Photos
+              </h2>
+
+              <p className="mb-7 mt-2 text-slate-400">
+                Upload original vehicle photos.
+                Each photo can be up to 5 MB.
+              </p>
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                {PHOTOS.map(
+                  (photo) => {
+                    const preview =
+                      form.photoPreviews[
+                        photo.id
+                      ];
+
+                    const inputRef =
+                      photo.id === 'front'
+                        ? frontRef
+                        : photo.id ===
+                            'driverSide'
+                          ? driverSideRef
+                          : photo.id ===
+                              'passengerSide'
+                            ? passengerSideRef
+                            : rearRef;
+
+                    return (
+                      <div
+                        key={photo.id}
+                        className="group relative aspect-video overflow-hidden rounded-2xl border border-white/10 bg-slate-900/70"
+                      >
+                        <button
+                          type="button"
+                          onClick={() =>
+                            inputRef.current?.click()
+                          }
+                          className="absolute inset-0 h-full w-full text-left"
+                        >
+                          {preview ? (
+                            <img
+                              src={preview}
+                              alt={photo.label}
+                              className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+                            />
+                          ) : (
+                            <div className="flex h-full flex-col items-center justify-center">
+                              <div className="mb-2 text-3xl text-slate-600">
+                                +
+                              </div>
+
+                              <p className="font-bold text-slate-300">
+                                {photo.label}
+                              </p>
+
+                              <p className="mt-1 text-xs text-slate-500">
+                                {photo.description}
+                              </p>
+
+                              <p className="mt-2 text-xs text-slate-600">
+                                Max 5 MB
+                              </p>
+                            </div>
+                          )}
+
+                          {preview && (
+                            <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-4">
+                              <p className="font-bold">
+                                {photo.label}{' '}
+                                <span className="text-emerald-400">
+                                  ✓
+                                </span>
+                              </p>
+
+                              {form.photos[
+                                photo.id
+                              ] && (
+                                <p className="mt-1 text-xs text-slate-300">
+                                  {formatBytes(
+                                    form.photos[
+                                      photo.id
+                                    ]!.size,
+                                  )}
+                                </p>
+                              )}
+                            </div>
+                          )}
+                        </button>
+
+                        <input
+                          ref={inputRef}
+                          hidden
+                          type="file"
+                          accept="image/*"
+                          onChange={(event) => {
+                            setPhoto(
+                              photo.id,
+                              event.target.files?.[0] ??
+                                null,
+                            );
+
+                            event.currentTarget.value =
+                              '';
+                          }}
+                        />
+                      </div>
+                    );
+                  },
+                )}
+              </div>
+            </div>
+          )}
+
+          {step === 4 && (
+            <div className="space-y-5">
+              <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-6 shadow-xl backdrop-blur-xl">
+                <h2 className="mb-6 text-2xl font-black">
+                  Review Application
+                </h2>
+
+                <div className="grid gap-5 sm:grid-cols-2">
+                  <div>
+                    <p className="text-xs uppercase tracking-wider text-slate-500">
+                      Full Name
+                    </p>
+
+                    <p className="mt-1 font-semibold text-white">
+                      {form.fullName}
+                    </p>
+                  </div>
+
+                  <div>
+                    <p className="text-xs uppercase tracking-wider text-slate-500">
+                      Email
+                    </p>
+
+                    <p className="mt-1 font-semibold text-white">
+                      {form.email}
+                    </p>
+                  </div>
+
+                  <div>
+                    <p className="text-xs uppercase tracking-wider text-slate-500">
+                      Phone
+                    </p>
+
+                    <p className="mt-1 font-semibold text-white">
+                      {form.phoneNumber}
+                    </p>
+                  </div>
+
+                  <div>
+                    <p className="text-xs uppercase tracking-wider text-slate-500">
+                      State
+                    </p>
+
+                    <p className="mt-1 font-semibold text-white">
+                      {form.state}
+                    </p>
+                  </div>
+
+                  <div>
+                    <p className="text-xs uppercase tracking-wider text-slate-500">
+                      Vehicle
+                    </p>
+
+                    <p className="mt-1 font-semibold text-white">
+                      {
+                        VEHICLES.find(
+                          (vehicle) =>
+                            vehicle.id ===
+                            form.vehicleType,
+                        )?.label
+                      }
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-6 shadow-xl backdrop-blur-xl">
+                <h3 className="mb-4 text-lg font-black">
+                  Documents & Photos
+                </h3>
+
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {DOCUMENTS.map(
+                    (document) => (
+                      <div
+                        key={document.id}
+                        className="flex items-center justify-between rounded-xl bg-white/[0.03] p-3"
+                      >
+                        <span className="text-sm text-slate-300">
+                          {document.label}
+                        </span>
+
+                        <CheckIcon className="h-5 w-5 text-emerald-400" />
+                      </div>
+                    ),
+                  )}
+
+                  {PHOTOS.map(
+                    (photo) => (
+                      <div
+                        key={photo.id}
+                        className="flex items-center justify-between rounded-xl bg-white/[0.03] p-3"
+                      >
+                        <span className="text-sm text-slate-300">
+                          {photo.label} photo
+                        </span>
+
+                        <CheckIcon className="h-5 w-5 text-emerald-400" />
+                      </div>
+                    ),
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+        </section>
+
+        <footer className="mt-8 flex gap-3">
+          <button
+            type="button"
+            disabled={
+              step === 1 ||
+              uploading ||
+              transitioning
+            }
+            onClick={() =>
+              moveToStep(
+                (step - 1) as
+                  | 1
+                  | 2
+                  | 3
+                  | 4,
+              )
+            }
+            className="rounded-xl border border-white/10 bg-white/[0.04] px-6 py-3.5 font-bold text-slate-300 transition hover:bg-white/[0.07] disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            Back
+          </button>
+
+          {step < 4 ? (
+            <button
+              type="button"
+              disabled={
+                uploading ||
+                transitioning
+              }
+              onClick={handleContinue}
+              className="flex-1 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-500 px-6 py-3.5 font-black shadow-lg shadow-cyan-500/20 transition hover:scale-[1.01] disabled:opacity-50"
+            >
+              Continue
+            </button>
+          ) : (
+            <button
+              type="button"
+              disabled={
+                uploading ||
+                transitioning
+              }
+              onClick={submitApplication}
+              className="flex-1 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 px-6 py-3.5 font-black shadow-lg shadow-emerald-500/20 transition hover:scale-[1.01] disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {uploading
+                ? 'Submitting...'
+                : 'Submit Application'}
+            </button>
+          )}
+        </footer>
       </div>
-
-      <style jsx>{`
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        .animate-fadeIn { animation: fadeIn 0.3s ease-out; }
-      `}</style>
-    </div>
+    </main>
   );
 }
